@@ -26,6 +26,10 @@ bool Camera::isCameraIndex() const {
     });
 }
 
+bool Camera::isVideoFile() const {
+    return !isRtsp() && !isCameraIndex();
+}
+
 bool Camera::open() {
     if (isRtsp()) {
         cap_.open(source_, cv::CAP_FFMPEG);
@@ -51,6 +55,12 @@ bool Camera::read(cv::Mat& frame) {
     }
 
     bool ok = cap_.read(frame);
+    if ((!ok || frame.empty()) && isVideoFile()) {
+        // Loop video files: end-of-file is not an error, just rewind and keep playing
+        cap_.set(cv::CAP_PROP_POS_FRAMES, 0);
+        ok = cap_.read(frame);
+    }
+
     if (!ok || frame.empty()) {
         failedFrameCount_++;
         std::cerr << "[Camera] Failed to read frame (" << failedFrameCount_

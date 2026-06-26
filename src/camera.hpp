@@ -33,4 +33,5 @@ private:
 
     bool isRtsp() const;
     bool isCameraIndex() const;
+    bool isVideoFile() const;
 };
