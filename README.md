@@ -1,120 +1,122 @@
 # Zone Analysis
 
-RTSP kamera, webcam veya video dosyasi uzerinde YOLO ONNX + OpenCV DNN ile insan
-tespiti yapar. Tespit edilen kisi belirlenen polygon bolgede belirlenen sureden
-fazla kalirsa alarm uretir, snapshot kaydeder ve CSV log yazar.
+Detects people in an RTSP camera, webcam, or video file using YOLO ONNX +
+OpenCV DNN. If a detected person stays inside a user-defined polygon region
+longer than a configured duration, the app raises an alert, saves a
+snapshot, and writes a CSV log entry.
 
-## Ozellikler
+## Features
 
-- RTSP kamera, yerel video dosyasi veya webcam girisi
-- OpenCV DNN ile ONNX model calistirma
-- Sadece COCO `person` sinifi icin takip
-- Polygon bolge icinde dwell-time alarmi
-- Alarm snapshotlari: `alerts/*.jpg`
-- Alarm logu: `alerts/alerts.csv`
-- Windows, Ubuntu/Debian ve Raspberry Pi icin kurulum/derleme scriptleri
+- RTSP camera, local video file, or webcam input
+- Runs an ONNX model via OpenCV DNN
+- Tracks only the COCO `person` class
+- Dwell-time alert when someone stays inside the polygon region
+- Alert snapshots: `alerts/*.jpg`
+- Alert log: `alerts/alerts.csv`
+- Interactive mouse-based polygon drawing, or a fixed `--region` from the CLI
+- Setup/build scripts for Windows, Ubuntu/Debian, and Raspberry Pi
 
-## Donanim Gereksinimleri
+## Hardware Requirements
 
-Bu uygulama varsayilan olarak OpenCV DNN `DNN_BACKEND_OPENCV` ve
-`DNN_TARGET_CPU` ile calisir; bu nedenle GPU zorunlu degildir. Her frame
-640x640 boyutuna yeniden olceklenir ve `models/yolo26n.onnx` modeli
-calistirilir.
+By default the app runs OpenCV DNN with `DNN_BACKEND_OPENCV` and
+`DNN_TARGET_CPU`, so a GPU is not required. Every frame is resized to
+640x640 before being run through the model.
 
-Arastirma notu:
+Research notes:
 
-- OpenCV DNN ONNX model yuklemeyi ve CPU hedefini destekler:
+- OpenCV DNN supports loading ONNX models and targeting the CPU:
   https://docs.opencv.org/4.x/d6/d0f/group__dnn.html
-- Ultralytics YOLO26n icin 640px benchmark degerleri: 2.4M parametre,
-  5.4 GFLOPs, CPU ONNX 38.9 ms ve T4 TensorRT 1.7 ms:
+- Ultralytics YOLO26n benchmark figures at 640px: 2.4M parameters,
+  5.4 GFLOPs, CPU ONNX 38.9 ms, T4 TensorRT 1.7 ms:
   https://docs.ultralytics.com/models/yolo26/
-- OpenCV Linux kurulumu icin CMake ve C++ derleyici gerektirir:
+- OpenCV's Linux install guide requires CMake and a C++ compiler:
   https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html
-- OpenCV Windows kurulumu icin CMake, Git ve Visual Studio/C++ derleyici
-  akisindan bahseder:
+- OpenCV's Windows install guide covers CMake, Git, and a Visual
+  Studio/C++ compiler workflow:
   https://docs.opencv.org/4.x/d3/d52/tutorial_windows_install.html
-- Ubuntu release cycle sayfasi 26.04 LTS ve 24.04 LTS destek pencerelerini
-  listeler:
+- The Ubuntu release cycle page lists the support windows for 26.04 LTS
+  and 24.04 LTS:
   https://ubuntu.com/about/release-cycle
-- NVIDIA CUDA Linux dokumanlari CUDA icin desteklenen Linux dagitimlari
-  arasinda Ubuntu 26.04 LTS, 24.04 LTS ve 22.04 LTS surumlerini listeler:
+- NVIDIA's CUDA Linux docs list Ubuntu 26.04 LTS, 24.04 LTS, and 22.04 LTS
+  among the supported Linux distributions for CUDA:
   https://docs.nvidia.com/cuda/cuda-installation-guide-linux/
-- OpenVINO sistem gereksinimleri Ubuntu 24.04/22.04 LTS destegini ve Intel
-  GPU/NPU icin ek surucu gereksinimlerini listeler:
+- OpenVINO's system requirements list Ubuntu 24.04/22.04 LTS support and
+  extra driver requirements for Intel GPU/NPU:
   https://docs.openvino.ai/2025/about-openvino/release-notes-openvino/system-requirements.html
-- Debian release sayfasi Debian 13 `trixie` surumunu guncel stable olarak
-  listeler ve Debian release life cycle'in 5 yil oldugunu belirtir:
+- Debian's release page lists Debian 13 `trixie` as the current stable
+  release and states the Debian release life cycle is 5 years:
   https://www.debian.org/releases/
-- Linux Mint indirme sayfasi Linux Mint 22.3 `Zena` surumunu onerilen guncel
-  surum olarak listeler:
+- The Linux Mint download page lists Linux Mint 22.3 `Zena` as the
+  current recommended release:
   https://linuxmint.com/download.php
-- Linux Mint 22.3 release notes sayfasi surumun Nisan 2029'a kadar desteklenen
-  LTS oldugunu ve Linux Mint 22.x'in Ubuntu 24.04 tabanli oldugunu belirtir:
+- The Linux Mint 22.3 release notes state the release is supported as an
+  LTS until April 2029 and that Linux Mint 22.x is based on Ubuntu 24.04:
   https://linuxmint.com/rel_zena.php
-- LMDE 7 sayfasi Linux Mint Debian Edition'in Ubuntu yerine Debian paket tabani
-  kullandigini belirtir:
+- The LMDE 7 page states Linux Mint Debian Edition uses a Debian package
+  base instead of Ubuntu:
   https://linuxmint.com/download_lmde.php
-- Raspberry Pi dokumanlari Raspberry Pi OS kurulum ve apt tabanli paket
-  yonetimi akisini aciklar:
+- Raspberry Pi's docs describe the Raspberry Pi OS install and apt-based
+  package management flow:
   https://www.raspberrypi.com/documentation/computers/getting-started.html
-- Raspberry Pi 5 urun sayfasi 4 GB, 8 GB ve 16 GB RAM seceneklerini listeler:
+- The Raspberry Pi 5 product page lists 4 GB, 8 GB, and 16 GB RAM options:
   https://www.raspberrypi.com/products/raspberry-pi-5/
 
-Pratik minimum donanim:
+Practical minimum hardware:
 
-| Bilesen | Minimum |
+| Component | Minimum |
 | --- | --- |
-| CPU | 64-bit, 4 cekirdekli Intel i5 / AMD Ryzen 3 veya benzeri |
+| CPU | 64-bit, 4-core Intel i5 / AMD Ryzen 3 or equivalent |
 | RAM | 8 GB |
-| GPU | Zorunlu degil; mevcut kod CPU ile calisir |
-| Disk | Runtime icin 1 GB bos alan; Windows'ta vcpkg/OpenCV build icin 25-40 GB bos alan onerilir |
-| Kamera/Ag | 1 adet RTSP kamera veya USB webcam; RTSP icin stabil LAN/Wi-Fi |
-| Isletim sistemi | Windows 10/11 x64 veya Ubuntu Server/Desktop 24.04/26.04 LTS |
+| GPU | Not required; the current code runs on CPU |
+| Disk | 1 GB free for runtime; 25-40 GB recommended on Windows for vcpkg/OpenCV build |
+| Camera/network | 1 RTSP camera or USB webcam; a stable LAN/Wi-Fi for RTSP |
+| OS | Windows 10/11 x64 or Ubuntu Server/Desktop 24.04/26.04 LTS |
 
-Onerilen donanim:
+Recommended hardware:
 
-| Kullanim | Oneri |
+| Use case | Recommendation |
 | --- | --- |
-| Tek kamera, 640x640, dusuk/orta FPS | 6 cekirdekli modern CPU, 16 GB RAM |
-| Tek kamera, daha akici izleme | Intel i5 10. nesil+ / Ryzen 5 3600+ veya benzeri |
-| Coklu kamera veya yuksek FPS | 8+ cekirdek CPU, 16-32 GB RAM; GPU hizlandirma istenecekse kodun CUDA/TensorRT/OpenVINO icin ayrica uyarlanmasi gerekir |
+| Single camera, 640x640, low/medium FPS | Modern 6-core CPU, 16 GB RAM |
+| Single camera, smoother tracking | Intel i5 10th gen+ / Ryzen 5 3600+ or equivalent |
+| Multiple cameras or high FPS | 8+ core CPU, 16-32 GB RAM; GPU acceleration would require adapting the code for CUDA/TensorRT/OpenVINO |
 
-Beklenen performans donanima, kamera cozunurlugune, RTSP codec'ine ve sahnedeki
-kisi sayisina baglidir. YOLO26n CPU ONNX benchmarki sadece model inference
-suresini gosterir; video decode, resize, takip, cizim ve ekran gosterimi toplam
-FPS'i dusurebilir.
+Expected performance depends on the hardware, camera resolution, RTSP codec,
+and number of people in the scene. The YOLO26n CPU ONNX benchmark only
+covers model inference time; video decode, resize, tracking, drawing, and
+display can lower the overall FPS.
 
-## Linux Icin En Uygun Sistemler
+## Best Linux Choices
 
-Saha kurulumu icin en temiz secenek GUI'siz Ubuntu Server LTS kullanmaktir.
-Bu uygulama OpenCV penceresi actigi icin cihaz basinda goruntu izlenecekse
-masaustu ortami kurulabilir; sadece alarm/log uretilecek edge senaryolarinda
-headless calistirma daha az kaynak tuketir. Headless mod istenirse kodda
-`cv::imshow`/`cv::waitKey` akisi ayrica opsiyonel hale getirilmelidir.
+For a field deployment, the cleanest option is a GUI-less Ubuntu Server LTS.
+This app opens an OpenCV window, so install a desktop environment if you
+need to watch the feed on the device itself; for edge scenarios that only
+need alerts/logs, headless operation uses fewer resources. To run headless,
+use `--no-gui` (the app skips `cv::imshow`/`cv::waitKey` entirely in that
+mode).
 
-| Senaryo | En uygun Linux | Neden |
+| Scenario | Best Linux choice | Why |
 | --- | --- | --- |
-| Yeni saha kurulumu | Ubuntu Server 26.04 LTS x86_64 | En guncel LTS, 5 yil standart guvenlik bakimi, guncel kernel ve yeni donanim destegi |
-| En risksiz paket/surucu uyumu | Ubuntu Server 24.04 LTS x86_64 | Uzun sureli LTS, OpenVINO ve CUDA dokumanlarinda genis destek, daha oturmus paket ekosistemi |
-| Dusuk kaynakli mini PC | Ubuntu Server 24.04/26.04 LTS minimal kurulum | Masaustu yukunu azaltir; RTSP + CPU inference icin CPU ve RAM'i uygulamaya birakir |
-| Gelistirme/test | Ubuntu Desktop 24.04/26.04 LTS veya WSL2 | GUI ve debug daha kolaydir; WSL2 saha/RTSP deployment icin ilk tercih olmamalidir |
-| Intel GPU/NPU hizlandirma dusunuluyorsa | Ubuntu 24.04 LTS veya 22.04 LTS | OpenVINO dokumanlari Intel GPU/NPU tarafinda bu LTS surumlerini destekler; mevcut kod OpenVINO icin uyarlanmalidir |
-| NVIDIA GPU/TensorRT dusunuluyorsa | Ubuntu 24.04 LTS veya 26.04 LTS | CUDA 13.3 dokumanlari bu Ubuntu LTS surumlerini destekler; mevcut kod CUDA/TensorRT icin uyarlanmalidir |
+| New field deployment | Ubuntu Server 26.04 LTS x86_64 | Latest LTS, 5 years of standard security maintenance, current kernel and hardware support |
+| Lowest-risk package/driver compatibility | Ubuntu Server 24.04 LTS x86_64 | Long-established LTS, broad support in OpenVINO/CUDA docs, more mature package ecosystem |
+| Low-resource mini PC | Ubuntu Server 24.04/26.04 LTS minimal install | Reduces desktop overhead, leaving CPU/RAM for RTSP + CPU inference |
+| Development/testing | Ubuntu Desktop 24.04/26.04 LTS or WSL2 | Easier GUI and debugging; WSL2 should not be the first choice for field/RTSP deployment |
+| Considering Intel GPU/NPU acceleration | Ubuntu 24.04 LTS or 22.04 LTS | OpenVINO docs support these LTS releases for Intel GPU/NPU; the current code would need to be adapted for OpenVINO |
+| Considering NVIDIA GPU/TensorRT | Ubuntu 24.04 LTS or 26.04 LTS | CUDA 13.3 docs support these Ubuntu LTS releases; the current code would need to be adapted for CUDA/TensorRT |
 
-Debian, Linux Mint ve benzeri dagitimlar:
+Debian, Linux Mint, and similar distributions:
 
-| Dagitim | Uygunluk | Not |
+| Distribution | Suitability | Note |
 | --- | --- | --- |
-| Debian 13 `trixie` stable | Saha/edge CPU-only kurulum icin cok uygun | Guncel stable Debian; server/minimal kurulumla dusuk kaynak kullanir. `scripts/setup_ubuntu.sh` Debian'da da genellikle calisir cunku apt paketlerini kurar. |
-| Debian 12 `bookworm` oldstable | Daha eski ama oturmus sistemler icin uygun | Mevcut donanim/surucu uyumu onceden test edildiyse kullanilabilir; yeni kurulumda Debian 13 tercih edilir. |
-| Linux Mint 22.3 `Zena` Cinnamon | Masaustu kullanici icin uygun | Ubuntu 24.04 tabanli LTS; GUI ile kamera izleme ve demo icin rahattir, fakat Cinnamon saha cihazinda daha fazla kaynak kullanir. |
-| Linux Mint 22.3 Xfce | Eski/dusuk kaynakli desktop icin daha uygun | Mint'in en hafif masaustu secenegidir; ekranda izleme gereken mini PC'lerde Cinnamon yerine daha mantiklidir. |
-| Linux Mint 22.3 MATE | Dengeli desktop secenegi | Xfce'den biraz daha dolu, Cinnamon'dan daha hafif bir orta yol sunar. |
-| LMDE 7 | Debian tabanli Mint isteyenler icin uygun | Ubuntu yerine Debian paket tabani kullanir; masaustu kolayligi + Debian tabani isteniyorsa degerlendirilebilir. |
-| MX Linux / antiX / benzeri Debian tabanlilar | Sadece deneyimli kullanici icin | Apt/OpenCV/FFmpeg paketleri bulunuyorsa calisabilir; deployment dokumanlari bu repo icin Debian/Ubuntu/Mint kadar dogrudan degildir. |
-| Arch / Manjaro / Fedora / openSUSE | Calisabilir ama ilk tercih degil | Paket adlari ve OpenCV build farkli olabilir; bu repodaki otomatik scriptler apt tabanli sistemlere gore hazirlanmistir. |
+| Debian 13 `trixie` stable | Well suited for field/edge CPU-only setups | Current stable Debian; a server/minimal install uses few resources. `scripts/setup_ubuntu.sh` generally also works on Debian since it just installs apt packages. |
+| Debian 12 `bookworm` oldstable | Fine for older, already-validated systems | Usable if hardware/driver compatibility has already been tested; prefer Debian 13 for new installs. |
+| Linux Mint 22.3 `Zena` Cinnamon | Good for desktop users | Ubuntu 24.04-based LTS; comfortable for GUI camera monitoring and demos, but Cinnamon uses more resources on a field device. |
+| Linux Mint 22.3 Xfce | Better for older/low-resource desktops | Mint's lightest desktop option; a more sensible choice than Cinnamon on mini PCs that need on-screen monitoring. |
+| Linux Mint 22.3 MATE | Balanced desktop option | A middle ground that's a bit heavier than Xfce but lighter than Cinnamon. |
+| LMDE 7 | Good for those who want Mint on a Debian base | Uses a Debian package base instead of Ubuntu; worth considering if you want desktop convenience plus a Debian base. |
+| MX Linux / antiX / similar Debian-based distros | Experienced users only | Should work if apt/OpenCV/FFmpeg packages are available; this repo's deployment docs aren't as directly tested here as on Debian/Ubuntu/Mint. |
+| Arch / Manjaro / Fedora / openSUSE | Workable but not the first choice | Package names and the OpenCV build can differ; this repo's automated scripts are written for apt-based systems. |
 
-Debian/Mint icin kurulum notu:
+Install note for Debian/Mint:
 
 ```bash
 sudo bash scripts/setup_ubuntu.sh
@@ -122,54 +124,56 @@ bash scripts/build_ubuntu.sh
 bash scripts/run_ubuntu.sh "rtsp://user:password@192.168.1.50:554/stream1"
 ```
 
-Script adi `setup_ubuntu.sh` olsa da Debian, Linux Mint, LMDE ve Ubuntu
-turevlerinde ayni apt paketlerini kurar: `build-essential`, `cmake`,
-`pkg-config`, `libopencv-dev`, `ffmpeg`.
+Even though the script is named `setup_ubuntu.sh`, it installs the same apt
+packages on Debian, Linux Mint, LMDE, and Ubuntu derivatives:
+`build-essential`, `cmake`, `pkg-config`, `libopencv-dev`, `ffmpeg`.
 
-Linux icin pratik cihaz onerileri:
+Practical device recommendations for Linux:
 
-| Profil | Onerilen cihaz sinifi |
+| Profile | Recommended device class |
 | --- | --- |
-| 1 kamera / CPU-only | Intel N100/N150 mini PC, Intel i3 10. nesil+, Ryzen 3 4300U+; 8-16 GB RAM; NVMe SSD |
-| 1-2 kamera / daha akici | Intel i5 10. nesil+, Ryzen 5 3600/5600U+; 16 GB RAM; kablolu Ethernet |
-| 3+ kamera / yuksek FPS | Intel i7/Ryzen 7 veya edge GPU'lu sistem; 32 GB RAM; her kamera icin ayrilmis ag bant genisligi |
-| Saha/edge kutusu | Fanli veya iyi sogutulan mini PC, UPS, kablolu Ethernet, otomatik baslatma icin systemd servisi |
-| Raspberry Pi | Raspberry Pi 5 8 GB veya 16 GB; tek RTSP kamera ve headless mod icin deneysel/ekonomik secenek |
+| 1 camera / CPU-only | Intel N100/N150 mini PC, Intel i3 10th gen+, Ryzen 3 4300U+; 8-16 GB RAM; NVMe SSD |
+| 1-2 cameras / smoother tracking | Intel i5 10th gen+, Ryzen 5 3600/5600U+; 16 GB RAM; wired Ethernet |
+| 3+ cameras / high FPS | Intel i7/Ryzen 7 or a system with an edge GPU; 32 GB RAM; dedicated network bandwidth per camera |
+| Field/edge box | Fanned or well-cooled mini PC, UPS, wired Ethernet, a systemd service for auto-start |
+| Raspberry Pi | Raspberry Pi 5 8 GB or 16 GB; an experimental/budget option for a single RTSP camera in headless mode |
 
-Linux notlari:
+Linux notes:
 
-- Saha kurulumu icin Ubuntu Server LTS, Ubuntu Desktop'a gore daha az arka plan
-  yuku getirir. Uygulamayi ekranda izlemek zorunlu degilse server/minimal
-  kurulum daha uygundur.
-- Ubuntu LTS surumleri iki yilda bir yayinlanir ve 5 yil standart guvenlik
-  bakimi alir; bu nedenle saha kurulumunda ara surumler yerine LTS secin.
-- RTSP kameralar icin kablolu Ethernet, sabit IP veya DHCP rezervasyonu ve
-  ayni LAN icinde dusuk gecikmeli baglanti tercih edin.
-- NVIDIA/Intel GPU hizlandirma bugunku kodda aktif degildir. Donanim alinacaksa
-  once CPU-only performansi test edin, sonra gerekli gorulurse CUDA/TensorRT veya
-  OpenVINO entegrasyonunu planlayin.
+- For field deployment, Ubuntu Server LTS carries less background overhead
+  than Ubuntu Desktop. If you don't need to watch the app on screen, prefer
+  a server/minimal install.
+- Ubuntu LTS releases ship every two years and get 5 years of standard
+  security maintenance, so prefer an LTS over an interim release for field
+  deployment.
+- For RTSP cameras, prefer wired Ethernet, a static IP or DHCP reservation,
+  and a low-latency connection on the same LAN.
+- NVIDIA/Intel GPU acceleration is not active in the current code. If you're
+  buying hardware, test CPU-only performance first, then plan a
+  CUDA/TensorRT or OpenVINO integration if you actually need it.
 
-## Raspberry Pi Kurulumu
+## Raspberry Pi Setup
 
-Raspberry Pi icin onerilen baslangic:
+Recommended starting point for Raspberry Pi:
 
-| Bilesen | Oneri |
+| Component | Recommendation |
 | --- | --- |
-| Kart | Raspberry Pi 5, 8 GB veya 16 GB RAM |
-| Isletim sistemi | Raspberry Pi OS Lite 64-bit, guncel stable surum |
-| Depolama | 32 GB+ microSD; daha stabil saha kurulumu icin USB/NVMe SSD |
-| Ag | RTSP kamera icin kablolu Ethernet onerilir |
-| Sogutma | Raspberry Pi 5 icin aktif sogutma onerilir |
-| Mod | Varsayilan olarak headless `--no-gui` |
+| Board | Raspberry Pi 5, 8 GB or 16 GB RAM |
+| OS | Raspberry Pi OS Lite 64-bit, latest stable |
+| Storage | 32 GB+ microSD; a USB/NVMe SSD for a more stable field deployment |
+| Network | Wired Ethernet recommended for the RTSP camera |
+| Cooling | Active cooling recommended for the Raspberry Pi 5 |
+| Mode | Headless `--no-gui` by default |
 
-Raspberry Pi 4 4 GB ile de derlenip calisabilir, ancak YOLO ONNX CPU inference
-icin performans sinirli olur. Gercek zamanli daha rahat kullanim icin Raspberry
-Pi 5 8 GB+ secin. Coklu kamera veya yuksek FPS icin mini PC daha dogru secimdir.
+It can also build and run on a Raspberry Pi 4 4 GB, but YOLO ONNX CPU
+inference performance is limited. For a smoother real-time experience, pick
+a Raspberry Pi 5 8 GB+. For multiple cameras or high FPS, a mini PC is the
+better choice.
 
-1. Raspberry Pi OS kurun.
+1. Install Raspberry Pi OS.
 
-   Raspberry Pi Imager ile `Raspberry Pi OS Lite (64-bit)` secin. SSH'i acin,
-   kullanici/sifre veya SSH key ayarlayin. Ilk acilistan sonra:
+   Use Raspberry Pi Imager and pick `Raspberry Pi OS Lite (64-bit)`. Enable
+   SSH and set a username/password or SSH key. After first boot:
 
    ```bash
    sudo apt update
@@ -177,62 +181,72 @@ Pi 5 8 GB+ secin. Coklu kamera veya yuksek FPS icin mini PC daha dogru secimdir.
    sudo reboot
    ```
 
-2. Repoyu klonlayin.
+2. Clone the repo.
 
    ```bash
    git clone https://github.com/Logshi/zone-analysis.git
    cd zone-analysis
    ```
 
-3. Gerekli paketleri kurun.
+3. Install required packages.
 
    ```bash
    sudo bash scripts/setup_rpi.sh
    ```
 
-   Bu script su paketleri kurar: `build-essential`, `cmake`, `git`,
-   `pkg-config`, `libopencv-dev`, `ffmpeg`.
+   This installs: `build-essential`, `cmake`, `git`, `pkg-config`,
+   `libopencv-dev`, `ffmpeg`.
 
-4. Derleyin.
+4. Build.
 
    ```bash
    bash scripts/build_rpi.sh
    ```
 
-5. RTSP kamera ile headless calistirin.
+5. Run headless with an RTSP camera.
 
    ```bash
    bash scripts/run_rpi.sh "rtsp://user:password@192.168.1.50:554/stream1"
    ```
 
-   Headless modda pencere acilmaz; alarm olursa `alerts/` klasorune snapshot ve
-   `alerts/alerts.csv` logu yazilir. Cikmak icin `Ctrl+C` kullanin.
+   In headless mode no window opens; if an alert fires, a snapshot is
+   written to `alerts/` and a log entry is appended to `alerts/alerts.csv`.
+   Press `Ctrl+C` to quit.
 
-6. USB webcam ile deneyin.
+6. Try it with a USB webcam.
 
    ```bash
    bash scripts/run_rpi.sh "0"
    ```
 
-7. Masaustu kurulu Raspberry Pi'de GUI ile calistirin.
+7. Run with a GUI on a Raspberry Pi with a desktop installed.
 
    ```bash
    bash scripts/run_rpi.sh --gui "rtsp://user:password@192.168.1.50:554/stream1"
    ```
 
-Performans ve stabilite notlari:
+   Without `--region`, this drops into interactive polygon-drawing mode on
+   the live feed: left click adds a point, right click undoes the last one,
+   `c` confirms, `r` resets, ESC falls back to the default region.
 
-- RTSP kamerada 640x360 veya 720p dusuk bitrate akisi tercih edin; uygulama
-  frame'i 640x640'a olcekler.
-- Kamera ile Raspberry Pi'yi ayni LAN'a alin, mumkunse Wi-Fi yerine Ethernet
-  kullanin.
-- Raspberry Pi CPU-only calistigi icin FPS dusuk olabilir; once tek kamera ile
-  test edin.
-- Uzun sureli calismada aktif sogutma ve kaliteli guc adaptoru kullanin.
-- Raspberry Pi Camera Module dogrudan RTSP degildir; bu uygulama icin en kolay
-  kaynak RTSP kamera veya USB webcam'dir.
+Performance and stability notes:
 
-## Repo Yapisi
+- Prefer a 640x360 or 720p low-bitrate stream from the RTSP camera; the app
+  resizes the frame to 640x640 anyway.
+- Put the camera and the Raspberry Pi on the same LAN, and use wired
+  Ethernet instead of Wi-Fi if possible.
+- Since the Raspberry Pi runs CPU-only, FPS can be low; test with a single
+  camera first.
+- Use active cooling and a quality power supply for long-running setups.
+- The Raspberry Pi Camera Module isn't RTSP directly; for this app, an RTSP
+  camera or USB webcam is the easiest source.
+- If the RTSP source has packet loss (visible as `decode_slice_header
+  error` / `Missing reference picture` in the logs), push the stream over
+  TCP and set `OPENCV_FFMPEG_CAPTURE_OPTIONS="rtsp_transport;tcp"` before
+  running the app; a corrupted frame is skipped rather than crashing the
+  app either way.
+
+## Repo Layout
 
 ```text
 .
@@ -241,6 +255,7 @@ Performans ve stabilite notlari:
 |-- vcpkg.json
 |-- requirements-python.txt
 |-- models/
+|   |-- yolov8n.onnx
 |   |-- yolo26n.onnx
 |   `-- README.md
 |-- alerts/
@@ -263,46 +278,46 @@ Performans ve stabilite notlari:
     `-- notifier.cpp / notifier.hpp
 ```
 
-## Hizli Baslangic: Windows
+## Quick Start: Windows
 
-PowerShell'i repo klasorunde acin:
+Open PowerShell in the repo folder:
 
 ```powershell
-cd C:\Users\<kullanici>\zone-analysis
+cd C:\Users\<user>\zone-analysis
 Set-ExecutionPolicy -Scope Process Bypass -Force
 .\scripts\setup_windows.ps1 -InstallSystemTools
 .\scripts\build_windows.ps1
 ```
 
-RTSP kamera ile calistirma:
+Run with an RTSP camera:
 
 ```powershell
 .\scripts\run_windows.ps1 -Source "rtsp://user:password@192.168.1.50:554/stream1"
 ```
 
-Video dosyasi ile calistirma:
+Run with a video file:
 
 ```powershell
 .\scripts\run_windows.ps1 -Source "C:\video\test.mp4"
 ```
 
-Webcam ile calistirma:
+Run with a webcam:
 
 ```powershell
 .\scripts\run_windows.ps1 -Source "0"
 ```
 
-`setup_windows.ps1 -InstallSystemTools` sunlari kurmaya calisir:
+`setup_windows.ps1 -InstallSystemTools` attempts to install:
 
 - Git
 - CMake
-- Visual Studio 2022 Build Tools C++ araclari
-- Yerel `.deps/vcpkg` klasoru
-- vcpkg uzerinden OpenCV 4
+- Visual Studio 2022 Build Tools C++ workload
+- A local `.deps/vcpkg` folder
+- OpenCV 4 via vcpkg
 
-Not: Visual Studio Build Tools ve OpenCV kurulumu uzun surebilir.
+Note: the Visual Studio Build Tools and OpenCV install can take a while.
 
-## Hizli Baslangic: Ubuntu / WSL
+## Quick Start: Ubuntu / WSL
 
 ```bash
 cd ~/zone-analysis
@@ -310,79 +325,86 @@ sudo bash scripts/setup_ubuntu.sh
 bash scripts/build_ubuntu.sh
 ```
 
-RTSP kamera ile:
+With an RTSP camera:
 
 ```bash
 bash scripts/run_ubuntu.sh "rtsp://user:password@192.168.1.50:554/stream1"
 ```
 
-Video dosyasi ile:
+With a video file:
 
 ```bash
 bash scripts/run_ubuntu.sh "/home/user/test.mp4"
 ```
 
-Webcam ile:
+With a webcam:
 
 ```bash
 bash scripts/run_ubuntu.sh "0"
 ```
 
-## Calistirma Opsiyonlari
+## Run Options
 
-Ana executable formati:
-
-```bash
-dwell_alert <source> <onnx_model_path> [--dwell seconds] [--region "x1,y1;x2,y2;x3,y3"] [--alerts alerts_dir]
-```
-
-Ornek:
+Main executable usage:
 
 ```bash
-./build/unix/dwell_alert "rtsp://user:pass@192.168.1.50:554/stream1" models/yolo26n.onnx --dwell 15 --region "180,200;500,200;560,560;120,560" --alerts alerts
+dwell_alert <source> <onnx_model_path> [--dwell seconds] [--region "x1,y1;x2,y2;x3,y3"] [--alerts alerts_dir] [--no-gui]
 ```
 
-Opsiyonlar:
+Example:
 
-- `source`: RTSP URL, video dosyasi yolu veya webcam indexi (`0`, `1`, ...)
-- `onnx_model_path`: Varsayilan model `models/yolo26n.onnx`
-- `--dwell`: Alarm icin bolgede kalma suresi, varsayilan `10`
-- `--region`: 640x640 frame uzerinde polygon noktalaridir
-- `--alerts`: Snapshot ve CSV log klasoru, varsayilan `alerts`
-- `--no-gui`: OpenCV penceresi acmadan headless calistirir; Raspberry Pi OS
-  Lite/SSH icin onerilir
+```bash
+./build/unix/dwell_alert "rtsp://user:pass@192.168.1.50:554/stream1" models/yolov8n.onnx --dwell 15 --region "180,200;500,200;560,560;120,560" --alerts alerts
+```
 
-GUI modunda cikmak icin `q` veya `ESC` tusuna basin. `--no-gui` modunda
-terminalden `Ctrl+C` kullanin.
+Options:
 
-## Python ONNX Testi
+- `source`: RTSP URL, video file path, or webcam index (`0`, `1`, ...)
+- `onnx_model_path`: recommended default is `models/yolov8n.onnx`
+- `--dwell`: how long someone must stay in the region to trigger an alert, default `10`
+- `--region`: polygon points in the 640x640 frame's coordinate space
+- `--alerts`: snapshot/CSV log directory, default `alerts`
+- `--no-gui`: runs headless without opening an OpenCV window; recommended
+  for Raspberry Pi OS Lite/SSH
 
-Ana uygulama C++ ile calisir. Isterseniz ONNX modelini tek bir gorselde hizli
-test etmek icin Python yardimci scriptini kullanabilirsiniz:
+If `--region` is omitted and the GUI is enabled, the app opens an
+interactive polygon-drawing mode on the live feed before tracking starts:
+left click adds a point, right click undoes the last one, `c` confirms,
+`r` resets, ESC falls back to the default built-in region.
+
+Press `q` or `ESC` to quit in GUI mode. In `--no-gui` mode, use `Ctrl+C`
+from the terminal.
+
+## Python ONNX Test
+
+The main app runs in C++. If you want to quickly test the ONNX model on a
+single image, you can use the Python helper script:
 
 ```bash
 python -m venv .venv
 .\.venv\Scripts\activate
 pip install -r requirements-python.txt
-python pyt.py --image C:\path\to\image.jpg --model models/yolo26n.onnx --save runs
+python pyt.py --image C:\path\to\image.jpg --model models/yolov8n.onnx --save runs
 ```
 
-Linux/macOS icin:
+On Linux/macOS:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-python.txt
-python pyt.py --image /path/to/image.jpg --model models/yolo26n.onnx --save runs
+python pyt.py --image /path/to/image.jpg --model models/yolov8n.onnx --save runs
 ```
 
 ## Model
 
-Repo icinde `models/yolo26n.onnx` vardir. Farkli YOLOv8/YOLO11 ONNX modeli
-kullanmak isterseniz modeli 640 input boyutuyla export edip `--model` yerine
-o dosyayi verebilirsiniz.
+The repo includes both `models/yolov8n.onnx` (recommended default) and
+`models/yolo26n.onnx`. See `models/README.md` for why `yolo26n.onnx` can
+fail to load on older OpenCV DNN builds. To use a different YOLOv8/YOLO11
+ONNX model, export it with a 640 input size and pass that file via
+`--model`/the second CLI argument instead.
 
-Ultralytics ile ONNX export ornegi:
+Example ONNX export with Ultralytics:
 
 ```bash
 pip install ultralytics

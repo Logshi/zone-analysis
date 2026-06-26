@@ -8,7 +8,7 @@ if [[ "${1:-}" == "--gui" ]]; then
 fi
 
 if [[ $# -lt 1 ]]; then
-  echo "Kullanim: bash scripts/run_rpi.sh [--gui] <rtsp_url|video_path|webcam_index> [dwell_seconds] [region]"
+  echo "Usage: bash scripts/run_rpi.sh [--gui] <rtsp_url|video_path|webcam_index> [dwell_seconds] [region]"
   exit 1
 fi
 
@@ -17,11 +17,11 @@ source_input="$1"
 dwell_seconds="${2:-10}"
 region="${3:-180,200;500,200;560,560;120,560}"
 exe="${repo_root}/build/rpi/dwell_alert"
-model="${repo_root}/models/yolo26n.onnx"
+model="${repo_root}/models/yolov8n.onnx"
 alerts="${repo_root}/alerts"
 
 if [[ ! -x "${exe}" ]]; then
-  echo "Executable bulunamadi. Once derleyin:"
+  echo "Executable not found. Build it first:"
   echo "bash scripts/build_rpi.sh"
   exit 1
 fi

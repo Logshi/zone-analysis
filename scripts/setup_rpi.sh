@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ "${EUID}" -ne 0 ]]; then
-  echo "Bu script apt paketleri kurar. Lutfen sudo ile calistirin:"
+  echo "This script installs apt packages. Please run it with sudo:"
   echo "sudo bash scripts/setup_rpi.sh"
   exit 1
 fi
@@ -17,5 +17,5 @@ apt-get install -y \
   ffmpeg
 
 echo
-echo "Raspberry Pi kurulumu tamamlandi."
-echo "Derlemek icin: bash scripts/build_rpi.sh"
+echo "Raspberry Pi setup complete."
+echo "To build: bash scripts/build_rpi.sh"

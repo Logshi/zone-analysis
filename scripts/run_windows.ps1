@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Source,
-    [string]$Model = "models\yolo26n.onnx",
+    [string]$Model = "models\yolov8n.onnx",
     [double]$DwellSeconds = 10,
     [string]$Region = "180,200;500,200;560,560;120,560",
     [string]$AlertsDir = "alerts",
@@ -22,7 +22,7 @@ $exeCandidates = @(
 
 $exe = $exeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 if (-not $exe) {
-    throw "dwell_alert.exe bulunamadi. Once .\scripts\build_windows.ps1 calistirin."
+    throw "dwell_alert.exe not found. Run .\scripts\build_windows.ps1 first."
 }
 
 & $exe $Source $modelPath --dwell $DwellSeconds --region $Region --alerts $alertsPath

@@ -18,7 +18,7 @@ Notifier::Notifier(const std::string& alertDir) : alertDir_(alertDir) {
 void Notifier::ensureAlertDir() {
     if (!fs::exists(alertDir_)) {
         fs::create_directories(alertDir_);
-        std::cout << "[Notifier] Alerts klasoru olusturuldu: " << alertDir_ << std::endl;
+        std::cout << "[Notifier] Alerts directory created: " << alertDir_ << std::endl;
     }
 }
 
@@ -27,7 +27,7 @@ void Notifier::ensureCsvHeader() {
         std::ofstream csv(csvPath_);
         csv << "timestamp,track_id,dwell_seconds,image_path\n";
         csv.close();
-        std::cout << "[Notifier] CSV log dosyasi olusturuldu: " << csvPath_ << std::endl;
+        std::cout << "[Notifier] CSV log file created: " << csvPath_ << std::endl;
     }
 }
 

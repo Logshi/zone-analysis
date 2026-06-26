@@ -19,7 +19,7 @@ AlertEvent DwellTracker::update(const std::vector<Detection>& detections,
 
     std::vector<bool> used(detections.size(), false);
 
-    // 1. Mevcut tracklari en yakin tespitle eslestir
+    // 1. Match existing tracks to the nearest detection
     for (auto& pair : tracks_) {
         Track& track = pair.second;
 
@@ -43,7 +43,7 @@ AlertEvent DwellTracker::update(const std::vector<Detection>& detections,
         }
     }
 
-    // 2. Eslesmeyen tespitler icin yeni track olustur
+    // 2. Create a new track for unmatched detections
     for (size_t i = 0; i < detections.size(); ++i) {
         if (used[i]) continue;
 
@@ -57,17 +57,17 @@ AlertEvent DwellTracker::update(const std::vector<Detection>& detections,
         tracks_[track.id] = track;
     }
 
-    // 3. Polygon icinde olma durumunu ve dwell-time alarmini guncelle
+    // 3. Update inside-region state and the dwell-time alert
     for (auto& pair : tracks_) {
         Track& track = pair.second;
         bool insideNow = isInsideRegion(track.center, region);
 
         if (insideNow && !track.inside) {
-            // Bolgeye yeni girdi
+            // Just entered the region
             track.enteredAt = now;
             track.notified = false;
         } else if (!insideNow && track.inside) {
-            // Bolgeden cikti, sayaci sifirla
+            // Left the region, reset the counter
             track.notified = false;
         }
         track.inside = insideNow;
@@ -86,7 +86,7 @@ AlertEvent DwellTracker::update(const std::vector<Detection>& detections,
         }
     }
 
-    // 4. Uzun sure gorunmeyen tracklari sil
+    // 4. Remove tracks that haven't been seen for a while
     for (auto it = tracks_.begin(); it != tracks_.end(); ) {
         double unseen = std::chrono::duration<double>(now - it->second.lastSeen).count();
         if (unseen > maxUnseenSeconds_) {

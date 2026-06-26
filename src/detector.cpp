@@ -4,15 +4,15 @@
 PersonDetector::PersonDetector(const std::string& modelPath) {
     net_ = cv::dnn::readNetFromONNX(modelPath);
     if (net_.empty()) {
-        std::cerr << "[PersonDetector] Model yuklenemedi: " << modelPath << std::endl;
-        throw std::runtime_error("Model yuklenemedi: " + modelPath);
+        std::cerr << "[PersonDetector] Failed to load model: " << modelPath << std::endl;
+        throw std::runtime_error("Failed to load model: " + modelPath);
     }
 
-    // CPU backend kullanilir; GPU varsa burada degistirilebilir
+    // CPU backend is used; can be swapped here if a GPU is available
     net_.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
     net_.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
 
-    std::cout << "[PersonDetector] Model yuklendi: " << modelPath << std::endl;
+    std::cout << "[PersonDetector] Model loaded: " << modelPath << std::endl;
 }
 
 std::vector<Detection> PersonDetector::detect(const cv::Mat& frame,
@@ -36,7 +36,7 @@ std::vector<Detection> PersonDetector::detect(const cv::Mat& frame,
     net_.forward(outputs, net_.getUnconnectedOutLayersNames());
 
     if (outputs.empty()) {
-        std::cerr << "[PersonDetector] Model ciktisi bos!" << std::endl;
+        std::cerr << "[PersonDetector] Model output is empty!" << std::endl;
         return results;
     }
 
@@ -57,27 +57,27 @@ std::vector<Detection> PersonDetector::parseOutput(const cv::Mat& output,
     std::vector<Detection> results;
 
     if (output.dims != 3) {
-        std::cerr << "[PersonDetector] Beklenmeyen model cikti boyutu (dims="
-                  << output.dims << "). [1,84,8400] veya [1,8400,84] bekleniyor." << std::endl;
+        std::cerr << "[PersonDetector] Unexpected model output rank (dims="
+                  << output.dims << "). Expected [1,84,8400] or [1,8400,84]." << std::endl;
         return results;
     }
 
     int d1 = output.size[1];
     int d2 = output.size[2];
 
-    // Beklenen channel sayisi: 4 (box) + 80 (class) = 84
+    // Expected channel count: 4 (box) + 80 (class) = 84
     cv::Mat data; // [numDetections x 84]
 
     if (d1 == 84 && d2 != 84) {
-        // [1, 84, 8400] -> transpose et -> [8400, 84]
+        // [1, 84, 8400] -> transpose to [8400, 84]
         cv::Mat reshaped = output.reshape(1, d1); // 84 x 8400
         cv::transpose(reshaped, data);
     } else if (d2 == 84 && d1 != 84) {
-        // [1, 8400, 84] -> dogrudan kullan
+        // [1, 8400, 84] -> use directly
         data = output.reshape(1, d1); // 8400 x 84
     } else {
-        std::cerr << "[PersonDetector] Beklenmeyen model cikti sekli: ["
-                  << d1 << ", " << d2 << "]. [1,84,8400] veya [1,8400,84] bekleniyor." << std::endl;
+        std::cerr << "[PersonDetector] Unexpected model output shape: ["
+                  << d1 << ", " << d2 << "]. Expected [1,84,8400] or [1,8400,84]." << std::endl;
         return results;
     }
 
@@ -95,7 +95,7 @@ std::vector<Detection> PersonDetector::parseOutput(const cv::Mat& output,
         float w = row[2];
         float h = row[3];
 
-        // En yuksek skorlu sinifi bul; sadece person (class 0) ise tespiti kabul et
+        // Find the highest-scoring class; only accept the detection if it is person (class 0)
         int bestClassId = 0;
         float bestScore = row[4];
         for (int c = 1; c < numClasses; ++c) {
@@ -122,7 +122,7 @@ std::vector<Detection> PersonDetector::parseOutput(const cv::Mat& output,
         cv::Rect box(static_cast<int>(left), static_cast<int>(top),
                      static_cast<int>(boxWidth), static_cast<int>(boxHeight));
 
-        // Frame disina tasan kutulari sinirla
+        // Clamp boxes that extend past the frame edges
         box &= cv::Rect(0, 0, origWidth, origHeight);
         if (box.width <= 0 || box.height <= 0) {
             continue;

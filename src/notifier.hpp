@@ -3,8 +3,8 @@
 #include <opencv2/opencv.hpp>
 #include <string>
 
-// Notifier: alarm olustugunda snapshot kaydeder, CSV log atar
-// ve terminale bilgi yazdirir.
+// Notifier: saves a snapshot, appends a CSV log entry, and prints
+// alert information to the terminal whenever an alert fires.
 class Notifier {
 public:
     explicit Notifier(const std::string& alertDir);

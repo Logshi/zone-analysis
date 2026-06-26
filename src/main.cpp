@@ -36,7 +36,7 @@ std::vector<cv::Point> parseRegion(const std::string& value) {
     while (std::getline(pointStream, token, ';')) {
         std::size_t comma = token.find(',');
         if (comma == std::string::npos) {
-            throw std::runtime_error("Region noktasi gecersiz: " + token);
+            throw std::runtime_error("Invalid region point: " + token);
         }
 
         int x = std::stoi(token.substr(0, comma));
@@ -45,25 +45,25 @@ std::vector<cv::Point> parseRegion(const std::string& value) {
     }
 
     if (points.size() < 3) {
-        throw std::runtime_error("Region en az 3 nokta icermelidir.");
+        throw std::runtime_error("Region must contain at least 3 points.");
     }
 
     return points;
 }
 
 void printUsage(const char* executable) {
-    std::cerr << "Kullanim: " << executable
-              << " <rtsp_url_veya_video_path_veya_webcam_index> <onnx_model_path>"
+    std::cerr << "Usage: " << executable
+              << " <rtsp_url_or_video_path_or_webcam_index> <onnx_model_path>"
               << " [--dwell seconds] [--region \"x1,y1;x2,y2;x3,y3\"] [--alerts alerts_dir] [--no-gui]"
               << std::endl;
-    std::cerr << "Ornek (RTSP) : " << executable
-              << " \"rtsp://admin:password@192.168.1.50:554/stream1\" models/yolo26n.onnx"
+    std::cerr << "Example (RTSP)  : " << executable
+              << " \"rtsp://admin:password@192.168.1.50:554/stream1\" models/yolov8n.onnx"
               << std::endl;
-    std::cerr << "Ornek (video): " << executable
-              << " test.mp4 models/yolo26n.onnx --dwell 15"
+    std::cerr << "Example (video) : " << executable
+              << " test.mp4 models/yolov8n.onnx --dwell 15"
               << std::endl;
-    std::cerr << "Ornek (webcam): " << executable
-              << " 0 models/yolo26n.onnx --region \"180,200;500,200;560,560;120,560\""
+    std::cerr << "Example (webcam): " << executable
+              << " 0 models/yolov8n.onnx --region \"180,200;500,200;560,560;120,560\""
               << std::endl;
 }
 
@@ -79,7 +79,7 @@ struct Options {
 
 Options parseArgs(int argc, char** argv) {
     if (argc < 3) {
-        throw std::runtime_error("Eksik arguman.");
+        throw std::runtime_error("Missing arguments.");
     }
 
     Options options;
@@ -91,7 +91,7 @@ Options parseArgs(int argc, char** argv) {
 
         auto requireValue = [&](const std::string& name) -> std::string {
             if (i + 1 >= argc) {
-                throw std::runtime_error(name + " icin deger gerekli.");
+                throw std::runtime_error(name + " requires a value.");
             }
             return argv[++i];
         };
@@ -99,7 +99,7 @@ Options parseArgs(int argc, char** argv) {
         if (arg == "--dwell") {
             options.dwellSeconds = std::stod(requireValue(arg));
             if (options.dwellSeconds <= 0.0) {
-                throw std::runtime_error("--dwell pozitif olmalidir.");
+                throw std::runtime_error("--dwell must be positive.");
             }
         } else if (arg == "--region") {
             options.region = parseRegion(requireValue(arg));
@@ -112,7 +112,7 @@ Options parseArgs(int argc, char** argv) {
             printUsage(argv[0]);
             std::exit(0);
         } else {
-            throw std::runtime_error("Bilinmeyen arguman: " + arg);
+            throw std::runtime_error("Unknown argument: " + arg);
         }
     }
 
@@ -147,7 +147,7 @@ void drawTracks(cv::Mat& frame, const std::unordered_map<int, Track>& tracks) {
     }
 }
 
-// Mouse ile manuel polygon cizimi icin durum tutar
+// Holds state for drawing the polygon with the mouse
 struct PolygonDrawState {
     std::vector<cv::Point> points;
 };
@@ -163,15 +163,15 @@ void onPolygonMouse(int event, int x, int y, int /*flags*/, void* userdata) {
     }
 }
 
-// Kullanicinin canli goruntu uzerinde fare ile polygon cizmesini saglar.
-// Sol tik: nokta ekler, sag tik: son noktayi siler, 'c': onayla, 'r': sifirla, ESC: varsayilan bolge.
+// Lets the user draw the polygon region with the mouse on the live feed.
+// Left click: add point, right click: remove last point, 'c': confirm, 'r': reset, ESC: use default region.
 std::vector<cv::Point> drawRegionInteractive(Camera& camera, const std::string& windowName,
                                               int width, int height) {
     PolygonDrawState state;
     cv::setMouseCallback(windowName, onPolygonMouse, &state);
 
-    std::cout << "[main] Polygon cizim modu: sol tik nokta ekler, sag tik son noktayi siler." << std::endl;
-    std::cout << "[main] 'c' ile onayla, 'r' ile sifirla, ESC ile varsayilan bolgeyi kullan." << std::endl;
+    std::cout << "[main] Polygon draw mode: left click adds a point, right click removes the last one." << std::endl;
+    std::cout << "[main] Press 'c' to confirm, 'r' to reset, ESC to use the default region." << std::endl;
 
     cv::Mat frame;
     std::vector<cv::Point> result;
@@ -193,7 +193,7 @@ std::vector<cv::Point> drawRegionInteractive(Camera& camera, const std::string& 
             cv::line(display, state.points.back(), state.points.front(), cv::Scalar(255, 0, 0), 1);
         }
 
-        cv::putText(display, "Polygon ciz: sol=ekle sag=geri al  c=onayla r=sifirla ESC=varsayilan",
+        cv::putText(display, "Draw polygon: left=add right=undo  c=confirm r=reset ESC=default",
                     cv::Point(10, 25), cv::FONT_HERSHEY_SIMPLEX, 0.55, cv::Scalar(0, 255, 255), 2);
 
         cv::imshow(windowName, display);
@@ -204,11 +204,11 @@ std::vector<cv::Point> drawRegionInteractive(Camera& camera, const std::string& 
                 result = state.points;
                 break;
             }
-            std::cout << "[main] En az 3 nokta gerekli." << std::endl;
+            std::cout << "[main] At least 3 points are required." << std::endl;
         } else if (key == 'r' || key == 'R') {
             state.points.clear();
         } else if (key == 27) { // ESC
-            std::cout << "[main] Varsayilan polygon kullanilacak." << std::endl;
+            std::cout << "[main] Using the default region." << std::endl;
             result = defaultRegion();
             break;
         }
@@ -232,7 +232,7 @@ int main(int argc, char** argv) {
 
     Camera camera(options.source);
     if (!camera.open()) {
-        std::cerr << "[main] Kamera/video acilamadi, cikiliyor." << std::endl;
+        std::cerr << "[main] Failed to open camera/video, exiting." << std::endl;
         return 1;
     }
 
@@ -242,9 +242,9 @@ int main(int argc, char** argv) {
     Notifier notifier(options.alertsDir);
 
     if (options.gui) {
-        std::cout << "[main] Sistem baslatildi. Cikis icin 'q' veya ESC." << std::endl;
+        std::cout << "[main] System started. Press 'q' or ESC to quit." << std::endl;
     } else {
-        std::cout << "[main] Sistem baslatildi. Headless modda cikis icin Ctrl+C." << std::endl;
+        std::cout << "[main] System started. Press Ctrl+C to quit in headless mode." << std::endl;
     }
     std::cout << "[main] Dwell limit: " << options.dwellSeconds << "s"
               << " | Alerts: " << options.alertsDir
@@ -269,9 +269,9 @@ int main(int argc, char** argv) {
         try {
             detections = detector.detect(frame);
         } catch (const cv::Exception& ex) {
-            // RTSP paket kaybi nedeniyle bozulmus bir kare DNN'i bozabilir;
-            // bu karedeki tespiti atla, akisa devam et.
-            std::cerr << "[main] Tespit hatasi, kare atlaniyor: " << ex.what() << std::endl;
+            // A frame corrupted by RTSP packet loss can crash the DNN forward pass;
+            // skip detection for this frame and keep going.
+            std::cerr << "[main] Detection error, skipping frame: " << ex.what() << std::endl;
             continue;
         }
 
@@ -291,7 +291,7 @@ int main(int argc, char** argv) {
 
         int key = cv::waitKey(1);
         if (key == 'q' || key == 27) {
-            std::cout << "[main] Cikis yapiliyor." << std::endl;
+            std::cout << "[main] Exiting." << std::endl;
             break;
         }
     }

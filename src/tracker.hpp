@@ -8,7 +8,7 @@
 
 using Clock = std::chrono::steady_clock;
 
-// Takip edilen bir kisinin durumu
+// State of a single tracked person
 struct Track {
     int id;
     cv::Point2f center;
@@ -19,7 +19,7 @@ struct Track {
     Clock::time_point lastSeen;
 };
 
-// Polygon bolgede dwell-time alarmi olusunca doner
+// Returned when a dwell-time alert fires inside the polygon region
 struct AlertEvent {
     bool hasAlert = false;
     int trackId = -1;
@@ -27,8 +27,8 @@ struct AlertEvent {
     cv::Rect box;
 };
 
-// DwellTracker: basit merkez-mesafe tabanli takip yapar ve
-// polygon bolgede belirlenen sureden fazla kalan kisiler icin alarm uretir.
+// DwellTracker: does simple center-distance based tracking and raises
+// an alert for anyone who stays inside the polygon region too long.
 class DwellTracker {
 public:
     DwellTracker();

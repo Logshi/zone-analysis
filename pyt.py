@@ -7,7 +7,7 @@ from ultralytics import YOLO
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run a quick ONNX detection test on one image.")
-    parser.add_argument("--model", default="models/yolo26n.onnx", help="Path to ONNX model.")
+    parser.add_argument("--model", default="models/yolov8n.onnx", help="Path to ONNX model.")
     parser.add_argument("--image", required=True, help="Path to test image.")
     parser.add_argument("--save", default="", help="Optional output directory for rendered result.")
     parser.add_argument("--show", action="store_true", help="Show result in an OpenCV window.")

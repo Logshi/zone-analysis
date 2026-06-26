@@ -5,15 +5,15 @@
 #include <string>
 #include <vector>
 
-// Tek bir tespit sonucu (sadece "person" sinifi icin)
+// A single detection result (only for the "person" class)
 struct Detection {
     cv::Rect box;
     float confidence;
     cv::Point2f center;
 };
 
-// PersonDetector: YOLOv8 ONNX modelini OpenCV DNN ile yukleyip
-// frame uzerinde insan (COCO class 0) tespiti yapar.
+// PersonDetector: loads a YOLOv8 ONNX model via OpenCV DNN and
+// detects people (COCO class 0) in a frame.
 class PersonDetector {
 public:
     explicit PersonDetector(const std::string& modelPath);

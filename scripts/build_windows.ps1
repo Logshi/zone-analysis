@@ -26,6 +26,6 @@ cmake -S $repoRoot -B $buildDir `
 cmake --build $buildDir --config $Configuration
 
 Write-Host ""
-Write-Host "Derleme tamamlandi."
-Write-Host "Calistirma ornegi:"
+Write-Host "Build complete."
+Write-Host "Run example:"
 Write-Host ".\scripts\run_windows.ps1 -Source `"rtsp://user:password@192.168.1.50:554/stream1`""

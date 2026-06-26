@@ -17,7 +17,7 @@ function Install-WithWinget {
     )
 
     if (-not (Test-Command "winget")) {
-        Write-Warning "winget bulunamadi. $Id otomatik kurulamadi."
+        Write-Warning "winget not found. $Id could not be installed automatically."
         return
     }
 
@@ -30,7 +30,7 @@ function Install-WithWinget {
         $args += @("--override", $Override)
     }
 
-    Write-Host "Kuruluyor: $Id"
+    Write-Host "Installing: $Id"
     winget @args
 }
 
@@ -53,11 +53,11 @@ if ($InstallSystemTools) {
 }
 
 if (-not (Test-Command "git")) {
-    throw "Git bulunamadi. Git kurup tekrar calistirin."
+    throw "Git not found. Install Git and run this script again."
 }
 
 if (-not (Test-Command "cmake")) {
-    throw "CMake bulunamadi. CMake kurup tekrar calistirin."
+    throw "CMake not found. Install CMake and run this script again."
 }
 
 if (-not (Test-Path $VcpkgRoot)) {
@@ -81,5 +81,5 @@ finally {
 }
 
 Write-Host ""
-Write-Host "Kurulum tamamlandi."
-Write-Host "Derlemek icin: .\scripts\build_windows.ps1"
+Write-Host "Setup complete."
+Write-Host "To build: .\scripts\build_windows.ps1"

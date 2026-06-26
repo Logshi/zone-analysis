@@ -36,12 +36,12 @@ bool Camera::open() {
     }
 
     if (!cap_.isOpened()) {
-        std::cerr << "[Camera] Kaynak acilamadi: " << source_ << std::endl;
+        std::cerr << "[Camera] Failed to open source: " << source_ << std::endl;
         return false;
     }
 
     failedFrameCount_ = 0;
-    std::cout << "[Camera] Kaynak acildi: " << source_ << std::endl;
+    std::cout << "[Camera] Source opened: " << source_ << std::endl;
     return true;
 }
 
@@ -53,11 +53,11 @@ bool Camera::read(cv::Mat& frame) {
     bool ok = cap_.read(frame);
     if (!ok || frame.empty()) {
         failedFrameCount_++;
-        std::cerr << "[Camera] Frame okunamadi (" << failedFrameCount_
+        std::cerr << "[Camera] Failed to read frame (" << failedFrameCount_
                   << "/" << maxFailedFrames_ << ")" << std::endl;
 
         if (failedFrameCount_ >= maxFailedFrames_) {
-            std::cerr << "[Camera] Maksimum hata sayisina ulasildi, yeniden baglaniliyor..." << std::endl;
+            std::cerr << "[Camera] Max failed frame count reached, reconnecting..." << std::endl;
             reconnect();
         }
         return false;
