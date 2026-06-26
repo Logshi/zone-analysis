@@ -265,7 +265,16 @@ int main(int argc, char** argv) {
             continue;
         }
 
-        std::vector<Detection> detections = detector.detect(frame);
+        std::vector<Detection> detections;
+        try {
+            detections = detector.detect(frame);
+        } catch (const cv::Exception& ex) {
+            // RTSP paket kaybi nedeniyle bozulmus bir kare DNN'i bozabilir;
+            // bu karedeki tespiti atla, akisa devam et.
+            std::cerr << "[main] Tespit hatasi, kare atlaniyor: " << ex.what() << std::endl;
+            continue;
+        }
+
         AlertEvent alert = tracker.update(detections, options.region);
 
         if (alert.hasAlert) {
