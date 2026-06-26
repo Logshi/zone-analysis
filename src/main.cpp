@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
@@ -71,6 +72,7 @@ struct Options {
     std::string modelPath;
     double dwellSeconds = 10.0;
     std::vector<cv::Point> region = defaultRegion();
+    bool regionSet = false;
     std::string alertsDir = "alerts";
     bool gui = true;
 };
@@ -101,6 +103,7 @@ Options parseArgs(int argc, char** argv) {
             }
         } else if (arg == "--region") {
             options.region = parseRegion(requireValue(arg));
+            options.regionSet = true;
         } else if (arg == "--alerts") {
             options.alertsDir = requireValue(arg);
         } else if (arg == "--no-gui") {
@@ -122,15 +125,97 @@ void drawRegion(cv::Mat& frame, const std::vector<cv::Point>& region) {
 }
 
 void drawTracks(cv::Mat& frame, const std::unordered_map<int, Track>& tracks) {
+    Clock::time_point now = Clock::now();
+
     for (const auto& pair : tracks) {
         const Track& track = pair.second;
         cv::Scalar color = track.inside ? cv::Scalar(0, 0, 255) : cv::Scalar(0, 255, 0);
 
         cv::rectangle(frame, track.box, color, 2);
-        cv::putText(frame, "ID " + std::to_string(track.id),
+
+        std::string label = "ID " + std::to_string(track.id);
+        if (track.inside) {
+            double dwell = std::chrono::duration<double>(now - track.enteredAt).count();
+            std::ostringstream oss;
+            oss << " " << std::fixed << std::setprecision(1) << dwell << "s";
+            label += oss.str();
+        }
+
+        cv::putText(frame, label,
                     cv::Point(track.box.x, std::max(0, track.box.y - 8)),
                     cv::FONT_HERSHEY_SIMPLEX, 0.5, color, 2);
     }
+}
+
+// Mouse ile manuel polygon cizimi icin durum tutar
+struct PolygonDrawState {
+    std::vector<cv::Point> points;
+};
+
+void onPolygonMouse(int event, int x, int y, int /*flags*/, void* userdata) {
+    auto* state = static_cast<PolygonDrawState*>(userdata);
+    if (event == cv::EVENT_LBUTTONDOWN) {
+        state->points.emplace_back(x, y);
+    } else if (event == cv::EVENT_RBUTTONDOWN) {
+        if (!state->points.empty()) {
+            state->points.pop_back();
+        }
+    }
+}
+
+// Kullanicinin canli goruntu uzerinde fare ile polygon cizmesini saglar.
+// Sol tik: nokta ekler, sag tik: son noktayi siler, 'c': onayla, 'r': sifirla, ESC: varsayilan bolge.
+std::vector<cv::Point> drawRegionInteractive(Camera& camera, const std::string& windowName,
+                                              int width, int height) {
+    PolygonDrawState state;
+    cv::setMouseCallback(windowName, onPolygonMouse, &state);
+
+    std::cout << "[main] Polygon cizim modu: sol tik nokta ekler, sag tik son noktayi siler." << std::endl;
+    std::cout << "[main] 'c' ile onayla, 'r' ile sifirla, ESC ile varsayilan bolgeyi kullan." << std::endl;
+
+    cv::Mat frame;
+    std::vector<cv::Point> result;
+
+    while (true) {
+        if (!camera.readResized(frame, width, height)) {
+            continue;
+        }
+
+        cv::Mat display = frame.clone();
+
+        for (size_t i = 0; i < state.points.size(); ++i) {
+            cv::circle(display, state.points[i], 4, cv::Scalar(0, 255, 255), -1);
+            if (i > 0) {
+                cv::line(display, state.points[i - 1], state.points[i], cv::Scalar(255, 0, 0), 2);
+            }
+        }
+        if (state.points.size() >= 3) {
+            cv::line(display, state.points.back(), state.points.front(), cv::Scalar(255, 0, 0), 1);
+        }
+
+        cv::putText(display, "Polygon ciz: sol=ekle sag=geri al  c=onayla r=sifirla ESC=varsayilan",
+                    cv::Point(10, 25), cv::FONT_HERSHEY_SIMPLEX, 0.55, cv::Scalar(0, 255, 255), 2);
+
+        cv::imshow(windowName, display);
+
+        int key = cv::waitKey(30);
+        if (key == 'c' || key == 'C') {
+            if (state.points.size() >= 3) {
+                result = state.points;
+                break;
+            }
+            std::cout << "[main] En az 3 nokta gerekli." << std::endl;
+        } else if (key == 'r' || key == 'R') {
+            state.points.clear();
+        } else if (key == 27) { // ESC
+            std::cout << "[main] Varsayilan polygon kullanilacak." << std::endl;
+            result = defaultRegion();
+            break;
+        }
+    }
+
+    cv::setMouseCallback(windowName, nullptr, nullptr);
+    return result;
 }
 
 } // namespace
@@ -168,6 +253,10 @@ int main(int argc, char** argv) {
     const std::string windowName = "RTSP Dwell Alert";
     if (options.gui) {
         cv::namedWindow(windowName, cv::WINDOW_AUTOSIZE);
+
+        if (!options.regionSet) {
+            options.region = drawRegionInteractive(camera, windowName, kInputWidth, kInputHeight);
+        }
     }
 
     cv::Mat frame;
