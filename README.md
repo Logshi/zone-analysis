@@ -33,6 +33,15 @@ Arastirma notu:
 - OpenCV Windows kurulumu icin CMake, Git ve Visual Studio/C++ derleyici
   akisindan bahseder:
   https://docs.opencv.org/4.x/d3/d52/tutorial_windows_install.html
+- Ubuntu release cycle sayfasi 26.04 LTS ve 24.04 LTS destek pencerelerini
+  listeler:
+  https://ubuntu.com/about/release-cycle
+- NVIDIA CUDA Linux dokumanlari CUDA icin desteklenen Linux dagitimlari
+  arasinda Ubuntu 26.04 LTS, 24.04 LTS ve 22.04 LTS surumlerini listeler:
+  https://docs.nvidia.com/cuda/cuda-installation-guide-linux/
+- OpenVINO sistem gereksinimleri Ubuntu 24.04/22.04 LTS destegini ve Intel
+  GPU/NPU icin ek surucu gereksinimlerini listeler:
+  https://docs.openvino.ai/2025/about-openvino/release-notes-openvino/system-requirements.html
 
 Pratik minimum donanim:
 
@@ -43,7 +52,7 @@ Pratik minimum donanim:
 | GPU | Zorunlu degil; mevcut kod CPU ile calisir |
 | Disk | Runtime icin 1 GB bos alan; Windows'ta vcpkg/OpenCV build icin 25-40 GB bos alan onerilir |
 | Kamera/Ag | 1 adet RTSP kamera veya USB webcam; RTSP icin stabil LAN/Wi-Fi |
-| Isletim sistemi | Windows 10/11 x64 veya Ubuntu/WSL 20.04+ |
+| Isletim sistemi | Windows 10/11 x64 veya Ubuntu Server/Desktop 24.04/26.04 LTS |
 
 Onerilen donanim:
 
@@ -57,6 +66,45 @@ Beklenen performans donanima, kamera cozunurlugune, RTSP codec'ine ve sahnedeki
 kisi sayisina baglidir. YOLO26n CPU ONNX benchmarki sadece model inference
 suresini gosterir; video decode, resize, takip, cizim ve ekran gosterimi toplam
 FPS'i dusurebilir.
+
+## Linux Icin En Uygun Sistemler
+
+Saha kurulumu icin en temiz secenek GUI'siz Ubuntu Server LTS kullanmaktir.
+Bu uygulama OpenCV penceresi actigi icin cihaz basinda goruntu izlenecekse
+masaustu ortami kurulabilir; sadece alarm/log uretilecek edge senaryolarinda
+headless calistirma daha az kaynak tuketir. Headless mod istenirse kodda
+`cv::imshow`/`cv::waitKey` akisi ayrica opsiyonel hale getirilmelidir.
+
+| Senaryo | En uygun Linux | Neden |
+| --- | --- | --- |
+| Yeni saha kurulumu | Ubuntu Server 26.04 LTS x86_64 | En guncel LTS, 5 yil standart guvenlik bakimi, guncel kernel ve yeni donanim destegi |
+| En risksiz paket/surucu uyumu | Ubuntu Server 24.04 LTS x86_64 | Uzun sureli LTS, OpenVINO ve CUDA dokumanlarinda genis destek, daha oturmus paket ekosistemi |
+| Dusuk kaynakli mini PC | Ubuntu Server 24.04/26.04 LTS minimal kurulum | Masaustu yukunu azaltir; RTSP + CPU inference icin CPU ve RAM'i uygulamaya birakir |
+| Gelistirme/test | Ubuntu Desktop 24.04/26.04 LTS veya WSL2 | GUI ve debug daha kolaydir; WSL2 saha/RTSP deployment icin ilk tercih olmamalidir |
+| Intel GPU/NPU hizlandirma dusunuluyorsa | Ubuntu 24.04 LTS veya 22.04 LTS | OpenVINO dokumanlari Intel GPU/NPU tarafinda bu LTS surumlerini destekler; mevcut kod OpenVINO icin uyarlanmalidir |
+| NVIDIA GPU/TensorRT dusunuluyorsa | Ubuntu 24.04 LTS veya 26.04 LTS | CUDA 13.3 dokumanlari bu Ubuntu LTS surumlerini destekler; mevcut kod CUDA/TensorRT icin uyarlanmalidir |
+
+Linux icin pratik cihaz onerileri:
+
+| Profil | Onerilen cihaz sinifi |
+| --- | --- |
+| 1 kamera / CPU-only | Intel N100/N150 mini PC, Intel i3 10. nesil+, Ryzen 3 4300U+; 8-16 GB RAM; NVMe SSD |
+| 1-2 kamera / daha akici | Intel i5 10. nesil+, Ryzen 5 3600/5600U+; 16 GB RAM; kablolu Ethernet |
+| 3+ kamera / yuksek FPS | Intel i7/Ryzen 7 veya edge GPU'lu sistem; 32 GB RAM; her kamera icin ayrilmis ag bant genisligi |
+| Saha/edge kutusu | Fanli veya iyi sogutulan mini PC, UPS, kablolu Ethernet, otomatik baslatma icin systemd servisi |
+
+Linux notlari:
+
+- Saha kurulumu icin Ubuntu Server LTS, Ubuntu Desktop'a gore daha az arka plan
+  yuku getirir. Uygulamayi ekranda izlemek zorunlu degilse server/minimal
+  kurulum daha uygundur.
+- Ubuntu LTS surumleri iki yilda bir yayinlanir ve 5 yil standart guvenlik
+  bakimi alir; bu nedenle saha kurulumunda ara surumler yerine LTS secin.
+- RTSP kameralar icin kablolu Ethernet, sabit IP veya DHCP rezervasyonu ve
+  ayni LAN icinde dusuk gecikmeli baglanti tercih edin.
+- NVIDIA/Intel GPU hizlandirma bugunku kodda aktif degildir. Donanim alinacaksa
+  once CPU-only performansi test edin, sonra gerekli gorulurse CUDA/TensorRT veya
+  OpenVINO entegrasyonunu planlayin.
 
 ## Repo Yapisi
 
