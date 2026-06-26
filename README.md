@@ -12,7 +12,7 @@ fazla kalirsa alarm uretir, snapshot kaydeder ve CSV log yazar.
 - Polygon bolge icinde dwell-time alarmi
 - Alarm snapshotlari: `alerts/*.jpg`
 - Alarm logu: `alerts/alerts.csv`
-- Windows ve Ubuntu icin kurulum/derleme scriptleri
+- Windows, Ubuntu/Debian ve Raspberry Pi icin kurulum/derleme scriptleri
 
 ## Donanim Gereksinimleri
 
@@ -54,6 +54,11 @@ Arastirma notu:
 - LMDE 7 sayfasi Linux Mint Debian Edition'in Ubuntu yerine Debian paket tabani
   kullandigini belirtir:
   https://linuxmint.com/download_lmde.php
+- Raspberry Pi dokumanlari Raspberry Pi OS kurulum ve apt tabanli paket
+  yonetimi akisini aciklar:
+  https://www.raspberrypi.com/documentation/computers/getting-started.html
+- Raspberry Pi 5 urun sayfasi 4 GB, 8 GB ve 16 GB RAM seceneklerini listeler:
+  https://www.raspberrypi.com/products/raspberry-pi-5/
 
 Pratik minimum donanim:
 
@@ -129,6 +134,7 @@ Linux icin pratik cihaz onerileri:
 | 1-2 kamera / daha akici | Intel i5 10. nesil+, Ryzen 5 3600/5600U+; 16 GB RAM; kablolu Ethernet |
 | 3+ kamera / yuksek FPS | Intel i7/Ryzen 7 veya edge GPU'lu sistem; 32 GB RAM; her kamera icin ayrilmis ag bant genisligi |
 | Saha/edge kutusu | Fanli veya iyi sogutulan mini PC, UPS, kablolu Ethernet, otomatik baslatma icin systemd servisi |
+| Raspberry Pi | Raspberry Pi 5 8 GB veya 16 GB; tek RTSP kamera ve headless mod icin deneysel/ekonomik secenek |
 
 Linux notlari:
 
@@ -142,6 +148,89 @@ Linux notlari:
 - NVIDIA/Intel GPU hizlandirma bugunku kodda aktif degildir. Donanim alinacaksa
   once CPU-only performansi test edin, sonra gerekli gorulurse CUDA/TensorRT veya
   OpenVINO entegrasyonunu planlayin.
+
+## Raspberry Pi Kurulumu
+
+Raspberry Pi icin onerilen baslangic:
+
+| Bilesen | Oneri |
+| --- | --- |
+| Kart | Raspberry Pi 5, 8 GB veya 16 GB RAM |
+| Isletim sistemi | Raspberry Pi OS Lite 64-bit, guncel stable surum |
+| Depolama | 32 GB+ microSD; daha stabil saha kurulumu icin USB/NVMe SSD |
+| Ag | RTSP kamera icin kablolu Ethernet onerilir |
+| Sogutma | Raspberry Pi 5 icin aktif sogutma onerilir |
+| Mod | Varsayilan olarak headless `--no-gui` |
+
+Raspberry Pi 4 4 GB ile de derlenip calisabilir, ancak YOLO ONNX CPU inference
+icin performans sinirli olur. Gercek zamanli daha rahat kullanim icin Raspberry
+Pi 5 8 GB+ secin. Coklu kamera veya yuksek FPS icin mini PC daha dogru secimdir.
+
+1. Raspberry Pi OS kurun.
+
+   Raspberry Pi Imager ile `Raspberry Pi OS Lite (64-bit)` secin. SSH'i acin,
+   kullanici/sifre veya SSH key ayarlayin. Ilk acilistan sonra:
+
+   ```bash
+   sudo apt update
+   sudo apt full-upgrade -y
+   sudo reboot
+   ```
+
+2. Repoyu klonlayin.
+
+   ```bash
+   git clone https://github.com/Logshi/zone-analysis.git
+   cd zone-analysis
+   ```
+
+3. Gerekli paketleri kurun.
+
+   ```bash
+   sudo bash scripts/setup_rpi.sh
+   ```
+
+   Bu script su paketleri kurar: `build-essential`, `cmake`, `git`,
+   `pkg-config`, `libopencv-dev`, `ffmpeg`.
+
+4. Derleyin.
+
+   ```bash
+   bash scripts/build_rpi.sh
+   ```
+
+5. RTSP kamera ile headless calistirin.
+
+   ```bash
+   bash scripts/run_rpi.sh "rtsp://user:password@192.168.1.50:554/stream1"
+   ```
+
+   Headless modda pencere acilmaz; alarm olursa `alerts/` klasorune snapshot ve
+   `alerts/alerts.csv` logu yazilir. Cikmak icin `Ctrl+C` kullanin.
+
+6. USB webcam ile deneyin.
+
+   ```bash
+   bash scripts/run_rpi.sh "0"
+   ```
+
+7. Masaustu kurulu Raspberry Pi'de GUI ile calistirin.
+
+   ```bash
+   bash scripts/run_rpi.sh --gui "rtsp://user:password@192.168.1.50:554/stream1"
+   ```
+
+Performans ve stabilite notlari:
+
+- RTSP kamerada 640x360 veya 720p dusuk bitrate akisi tercih edin; uygulama
+  frame'i 640x640'a olcekler.
+- Kamera ile Raspberry Pi'yi ayni LAN'a alin, mumkunse Wi-Fi yerine Ethernet
+  kullanin.
+- Raspberry Pi CPU-only calistigi icin FPS dusuk olabilir; once tek kamera ile
+  test edin.
+- Uzun sureli calismada aktif sogutma ve kaliteli guc adaptoru kullanin.
+- Raspberry Pi Camera Module dogrudan RTSP degildir; bu uygulama icin en kolay
+  kaynak RTSP kamera veya USB webcam'dir.
 
 ## Repo Yapisi
 
@@ -162,7 +251,10 @@ Linux notlari:
 |   |-- run_windows.ps1
 |   |-- setup_ubuntu.sh
 |   |-- build_ubuntu.sh
-|   `-- run_ubuntu.sh
+|   |-- run_ubuntu.sh
+|   |-- setup_rpi.sh
+|   |-- build_rpi.sh
+|   `-- run_rpi.sh
 `-- src/
     |-- main.cpp
     |-- camera.cpp / camera.hpp
@@ -257,8 +349,11 @@ Opsiyonlar:
 - `--dwell`: Alarm icin bolgede kalma suresi, varsayilan `10`
 - `--region`: 640x640 frame uzerinde polygon noktalaridir
 - `--alerts`: Snapshot ve CSV log klasoru, varsayilan `alerts`
+- `--no-gui`: OpenCV penceresi acmadan headless calistirir; Raspberry Pi OS
+  Lite/SSH icin onerilir
 
-Programdan cikmak icin `q` veya `ESC` tusuna basin.
+GUI modunda cikmak icin `q` veya `ESC` tusuna basin. `--no-gui` modunda
+terminalden `Ctrl+C` kullanin.
 
 ## Python ONNX Testi
 

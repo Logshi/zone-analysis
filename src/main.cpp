@@ -53,7 +53,7 @@ std::vector<cv::Point> parseRegion(const std::string& value) {
 void printUsage(const char* executable) {
     std::cerr << "Kullanim: " << executable
               << " <rtsp_url_veya_video_path_veya_webcam_index> <onnx_model_path>"
-              << " [--dwell seconds] [--region \"x1,y1;x2,y2;x3,y3\"] [--alerts alerts_dir]"
+              << " [--dwell seconds] [--region \"x1,y1;x2,y2;x3,y3\"] [--alerts alerts_dir] [--no-gui]"
               << std::endl;
     std::cerr << "Ornek (RTSP) : " << executable
               << " \"rtsp://admin:password@192.168.1.50:554/stream1\" models/yolo26n.onnx"
@@ -72,6 +72,7 @@ struct Options {
     double dwellSeconds = 10.0;
     std::vector<cv::Point> region = defaultRegion();
     std::string alertsDir = "alerts";
+    bool gui = true;
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -102,6 +103,8 @@ Options parseArgs(int argc, char** argv) {
             options.region = parseRegion(requireValue(arg));
         } else if (arg == "--alerts") {
             options.alertsDir = requireValue(arg);
+        } else if (arg == "--no-gui") {
+            options.gui = false;
         } else if (arg == "--help" || arg == "-h") {
             printUsage(argv[0]);
             std::exit(0);
@@ -153,12 +156,19 @@ int main(int argc, char** argv) {
     tracker.setDwellLimitSeconds(options.dwellSeconds);
     Notifier notifier(options.alertsDir);
 
-    std::cout << "[main] Sistem baslatildi. Cikis icin 'q' veya ESC." << std::endl;
+    if (options.gui) {
+        std::cout << "[main] Sistem baslatildi. Cikis icin 'q' veya ESC." << std::endl;
+    } else {
+        std::cout << "[main] Sistem baslatildi. Headless modda cikis icin Ctrl+C." << std::endl;
+    }
     std::cout << "[main] Dwell limit: " << options.dwellSeconds << "s"
-              << " | Alerts: " << options.alertsDir << std::endl;
+              << " | Alerts: " << options.alertsDir
+              << " | GUI: " << (options.gui ? "on" : "off") << std::endl;
 
     const std::string windowName = "RTSP Dwell Alert";
-    cv::namedWindow(windowName, cv::WINDOW_AUTOSIZE);
+    if (options.gui) {
+        cv::namedWindow(windowName, cv::WINDOW_AUTOSIZE);
+    }
 
     cv::Mat frame;
     while (true) {
@@ -173,9 +183,12 @@ int main(int argc, char** argv) {
             notifier.sendAlert(alert.trackId, alert.dwellSeconds, frame, alert.box);
         }
 
+        if (!options.gui) {
+            continue;
+        }
+
         drawRegion(frame, options.region);
         drawTracks(frame, tracker.getTracks());
-
         cv::imshow(windowName, frame);
 
         int key = cv::waitKey(1);
@@ -186,6 +199,8 @@ int main(int argc, char** argv) {
     }
 
     camera.release();
-    cv::destroyAllWindows();
+    if (options.gui) {
+        cv::destroyAllWindows();
+    }
     return 0;
 }
