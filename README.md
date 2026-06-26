@@ -14,6 +14,50 @@ fazla kalirsa alarm uretir, snapshot kaydeder ve CSV log yazar.
 - Alarm logu: `alerts/alerts.csv`
 - Windows ve Ubuntu icin kurulum/derleme scriptleri
 
+## Donanim Gereksinimleri
+
+Bu uygulama varsayilan olarak OpenCV DNN `DNN_BACKEND_OPENCV` ve
+`DNN_TARGET_CPU` ile calisir; bu nedenle GPU zorunlu degildir. Her frame
+640x640 boyutuna yeniden olceklenir ve `models/yolo26n.onnx` modeli
+calistirilir.
+
+Arastirma notu:
+
+- OpenCV DNN ONNX model yuklemeyi ve CPU hedefini destekler:
+  https://docs.opencv.org/4.x/d6/d0f/group__dnn.html
+- Ultralytics YOLO26n icin 640px benchmark degerleri: 2.4M parametre,
+  5.4 GFLOPs, CPU ONNX 38.9 ms ve T4 TensorRT 1.7 ms:
+  https://docs.ultralytics.com/models/yolo26/
+- OpenCV Linux kurulumu icin CMake ve C++ derleyici gerektirir:
+  https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html
+- OpenCV Windows kurulumu icin CMake, Git ve Visual Studio/C++ derleyici
+  akisindan bahseder:
+  https://docs.opencv.org/4.x/d3/d52/tutorial_windows_install.html
+
+Pratik minimum donanim:
+
+| Bilesen | Minimum |
+| --- | --- |
+| CPU | 64-bit, 4 cekirdekli Intel i5 / AMD Ryzen 3 veya benzeri |
+| RAM | 8 GB |
+| GPU | Zorunlu degil; mevcut kod CPU ile calisir |
+| Disk | Runtime icin 1 GB bos alan; Windows'ta vcpkg/OpenCV build icin 25-40 GB bos alan onerilir |
+| Kamera/Ag | 1 adet RTSP kamera veya USB webcam; RTSP icin stabil LAN/Wi-Fi |
+| Isletim sistemi | Windows 10/11 x64 veya Ubuntu/WSL 20.04+ |
+
+Onerilen donanim:
+
+| Kullanim | Oneri |
+| --- | --- |
+| Tek kamera, 640x640, dusuk/orta FPS | 6 cekirdekli modern CPU, 16 GB RAM |
+| Tek kamera, daha akici izleme | Intel i5 10. nesil+ / Ryzen 5 3600+ veya benzeri |
+| Coklu kamera veya yuksek FPS | 8+ cekirdek CPU, 16-32 GB RAM; GPU hizlandirma istenecekse kodun CUDA/TensorRT/OpenVINO icin ayrica uyarlanmasi gerekir |
+
+Beklenen performans donanima, kamera cozunurlugune, RTSP codec'ine ve sahnedeki
+kisi sayisina baglidir. YOLO26n CPU ONNX benchmarki sadece model inference
+suresini gosterir; video decode, resize, takip, cizim ve ekran gosterimi toplam
+FPS'i dusurebilir.
+
 ## Repo Yapisi
 
 ```text
