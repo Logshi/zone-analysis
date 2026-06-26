@@ -388,6 +388,8 @@ Options:
 - `--dwell`: how long someone must stay in the region to trigger an alert, default `10`
 - `--region`: polygon points in the 640x640 frame's coordinate space
 - `--alerts`: snapshot/CSV log directory, default `alerts`
+- `--conf`: detection confidence threshold (0-1), default `0.5`; raise it
+  (e.g. `0.6`-`0.7`) if non-people are being detected as a person
 - `--no-gui`: runs headless without opening an OpenCV window; recommended
   for Raspberry Pi OS Lite/SSH
 

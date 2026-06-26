@@ -54,13 +54,14 @@ std::vector<cv::Point> parseRegion(const std::string& value) {
 void printUsage(const char* executable) {
     std::cerr << "Usage: " << executable
               << " <rtsp_url_or_video_path_or_webcam_index> <onnx_model_path>"
-              << " [--dwell seconds] [--region \"x1,y1;x2,y2;x3,y3\"] [--alerts alerts_dir] [--no-gui]"
+              << " [--dwell seconds] [--region \"x1,y1;x2,y2;x3,y3\"] [--alerts alerts_dir]"
+              << " [--conf threshold] [--no-gui]"
               << std::endl;
     std::cerr << "Example (RTSP)  : " << executable
               << " \"rtsp://admin:password@192.168.1.50:554/stream1\" models/yolov8n.onnx"
               << std::endl;
     std::cerr << "Example (video) : " << executable
-              << " test.mp4 models/yolov8n.onnx --dwell 15"
+              << " test.mp4 models/yolov8n.onnx --dwell 15 --conf 0.6"
               << std::endl;
     std::cerr << "Example (webcam): " << executable
               << " 0 models/yolov8n.onnx --region \"180,200;500,200;560,560;120,560\""
@@ -74,6 +75,7 @@ struct Options {
     std::vector<cv::Point> region = defaultRegion();
     bool regionSet = false;
     std::string alertsDir = "alerts";
+    float confThreshold = 0.5f;
     bool gui = true;
 };
 
@@ -106,6 +108,11 @@ Options parseArgs(int argc, char** argv) {
             options.regionSet = true;
         } else if (arg == "--alerts") {
             options.alertsDir = requireValue(arg);
+        } else if (arg == "--conf") {
+            options.confThreshold = std::stof(requireValue(arg));
+            if (options.confThreshold <= 0.0f || options.confThreshold >= 1.0f) {
+                throw std::runtime_error("--conf must be between 0 and 1.");
+            }
         } else if (arg == "--no-gui") {
             options.gui = false;
         } else if (arg == "--help" || arg == "-h") {
@@ -247,6 +254,7 @@ int main(int argc, char** argv) {
         std::cout << "[main] System started. Press Ctrl+C to quit in headless mode." << std::endl;
     }
     std::cout << "[main] Dwell limit: " << options.dwellSeconds << "s"
+              << " | Confidence: " << options.confThreshold
               << " | Alerts: " << options.alertsDir
               << " | GUI: " << (options.gui ? "on" : "off") << std::endl;
 
@@ -267,7 +275,7 @@ int main(int argc, char** argv) {
 
         std::vector<Detection> detections;
         try {
-            detections = detector.detect(frame);
+            detections = detector.detect(frame, options.confThreshold);
         } catch (const cv::Exception& ex) {
             // A frame corrupted by RTSP packet loss can crash the DNN forward pass;
             // skip detection for this frame and keep going.
