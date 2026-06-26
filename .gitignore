@@ -1,5 +1,6 @@
 build/
 .deps/
+vcpkg_installed/
 .venv/
 __pycache__/
 *.pyc
