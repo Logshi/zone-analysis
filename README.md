@@ -16,6 +16,15 @@ snapshot, and writes a CSV log entry.
 - Interactive mouse-based polygon drawing, or a fixed `--region` from the CLI
 - Setup/build scripts for Windows, Ubuntu/Debian, and Raspberry Pi
 
+## Example
+
+![Example alert snapshot with polygon region, per-person tracking IDs, and a dwell-time alert box. Faces are pixelated for privacy.](docs/example_alert.jpg)
+
+A real alert snapshot (faces pixelated for privacy before publishing here):
+person tracking boxes in green, the alerted person in red with the
+`ALERT: 10s+ dwell` label, inside the blue polygon region drawn interactively
+on the live feed.
+
 ## Hardware Requirements
 
 By default the app runs OpenCV DNN with `DNN_BACKEND_OPENCV` and
@@ -154,6 +163,19 @@ Linux notes:
 
 ## Raspberry Pi Setup
 
+Tested hardware (confirmed working, GUI + headless, with OpenCV built from
+source per step 4 below):
+
+| Component | Tested unit |
+| --- | --- |
+| Board | Raspberry Pi 5 Model B Rev 1.0 |
+| CPU | ARM Cortex-A76, 4 cores @ up to 2.0 GHz |
+| RAM | 4 GB (4.0 GiB reported) |
+| OS | Raspberry Pi OS (bookworm) 64-bit |
+| Storage | 59.5 GB microSD (~40 GB free) |
+| Network | Wi-Fi (wlan0) |
+| Temperature under load | ~49.4°C, no throttling (`vcgencmd get_throttled` → `0x0`) |
+
 Recommended starting point for Raspberry Pi:
 
 | Component | Recommendation |
@@ -279,9 +301,7 @@ Performance and stability notes:
 |-- vcpkg.json
 |-- requirements-python.txt
 |-- models/
-|   |-- yolov8n.onnx
-|   |-- yolo26n.onnx
-|   `-- README.md
+|   `-- README.md   (model .onnx files are not committed, see models/README.md)
 |-- alerts/
 |   `-- .gitkeep
 |-- scripts/
@@ -424,18 +444,18 @@ python pyt.py --image /path/to/image.jpg --model models/yolov8n.onnx --save runs
 
 ## Model
 
-The repo includes both `models/yolov8n.onnx` (recommended default) and
-`models/yolo26n.onnx`. See `models/README.md` for why `yolo26n.onnx` can
-fail to load on older OpenCV DNN builds. To use a different YOLOv8/YOLO11
-ONNX model, export it with a 640 input size and pass that file via
-`--model`/the second CLI argument instead.
-
-Example ONNX export with Ultralytics:
+No model file is committed to this repo (Ultralytics YOLO weights are
+AGPL-3.0 licensed; see `models/README.md`). Export your own and drop it in
+`models/`:
 
 ```bash
 pip install ultralytics
 yolo export model=yolov8n.pt format=onnx imgsz=640
 ```
+
+Then pass its path as the second CLI argument, e.g. `models/yolov8n.onnx`.
+To use a different YOLOv8/YOLO11 model, export it the same way with a 640
+input size.
 
 ## GitHub Repo Description
 

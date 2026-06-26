@@ -5,6 +5,11 @@ vcpkg_installed/
 __pycache__/
 *.pyc
 
+# Model weights are not redistributed in this repo (see models/README.md
+# for licensing reasons); export/download your own.
+models/*.onnx
+models/*.pt
+
 alerts/*.jpg
 alerts/*.jpeg
 alerts/*.png
