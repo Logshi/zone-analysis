@@ -197,13 +197,37 @@ better choice.
    This installs: `build-essential`, `cmake`, `git`, `pkg-config`,
    `libopencv-dev`, `ffmpeg`.
 
-4. Build.
+4. Build OpenCV from source (required for the YOLOv8 model to work).
+
+   The apt-installed `libopencv-dev` on Raspberry Pi OS bookworm is OpenCV
+   4.6.0, whose `cv::dnn` cannot run YOLOv8's detection head (it throws a
+   `shape_utils.hpp` assertion on every frame instead of crashing once, since
+   the app catches and skips the bad frame, hiding the fact that *every*
+   frame fails). This has been confirmed both on Raspberry Pi OS bookworm
+   (OpenCV 4.6.0) and on Ubuntu 22.04 (OpenCV 4.5.4); OpenCV 4.10+ does not
+   have this problem. Build and install a newer OpenCV from source:
 
    ```bash
+   bash scripts/build_opencv_rpi.sh
+   ```
+
+   This takes roughly 1-3+ hours on Raspberry Pi hardware and needs a few GB
+   of free disk space. It installs OpenCV 4.10.0 to `/usr/local`, which
+   CMake picks up ahead of the older apt copy.
+
+5. Build the app.
+
+   ```bash
+   rm -rf build/rpi
    bash scripts/build_rpi.sh
    ```
 
-5. Run headless with an RTSP camera.
+   The CMake configure output should report `Found OpenCV: ... (found
+   version "4.10.0")` — if it still says 4.6.0, the source-built copy in
+   `/usr/local` isn't being found ahead of the apt one; check that step 4
+   completed (`sudo make install` and `sudo ldconfig`) without errors.
+
+6. Run headless with an RTSP camera.
 
    ```bash
    bash scripts/run_rpi.sh "rtsp://user:password@192.168.1.50:554/stream1"
@@ -213,13 +237,13 @@ better choice.
    written to `alerts/` and a log entry is appended to `alerts/alerts.csv`.
    Press `Ctrl+C` to quit.
 
-6. Try it with a USB webcam.
+7. Try it with a USB webcam.
 
    ```bash
    bash scripts/run_rpi.sh "0"
    ```
 
-7. Run with a GUI on a Raspberry Pi with a desktop installed.
+8. Run with a GUI on a Raspberry Pi with a desktop installed.
 
    ```bash
    bash scripts/run_rpi.sh --gui "rtsp://user:password@192.168.1.50:554/stream1"
