@@ -31,6 +31,7 @@ sudo apt-get install -y \
   libavcodec-dev libavformat-dev libswscale-dev libv4l-dev \
   libxvidcore-dev libx264-dev \
   libatlas-base-dev gfortran \
+  libgtk-3-dev \
   python3-dev
 
 mkdir -p "${SRC_DIR}"
@@ -57,6 +58,7 @@ cmake \
   -DINSTALL_PYTHON_EXAMPLES=OFF \
   -DINSTALL_C_EXAMPLES=OFF \
   -DWITH_FFMPEG=ON \
+  -DWITH_GTK=ON \
   -DBUILD_opencv_dnn=ON \
   -DOPENCV_GENERATE_PKGCONFIG=ON \
   ..
