@@ -42,6 +42,18 @@ Arastirma notu:
 - OpenVINO sistem gereksinimleri Ubuntu 24.04/22.04 LTS destegini ve Intel
   GPU/NPU icin ek surucu gereksinimlerini listeler:
   https://docs.openvino.ai/2025/about-openvino/release-notes-openvino/system-requirements.html
+- Debian release sayfasi Debian 13 `trixie` surumunu guncel stable olarak
+  listeler ve Debian release life cycle'in 5 yil oldugunu belirtir:
+  https://www.debian.org/releases/
+- Linux Mint indirme sayfasi Linux Mint 22.3 `Zena` surumunu onerilen guncel
+  surum olarak listeler:
+  https://linuxmint.com/download.php
+- Linux Mint 22.3 release notes sayfasi surumun Nisan 2029'a kadar desteklenen
+  LTS oldugunu ve Linux Mint 22.x'in Ubuntu 24.04 tabanli oldugunu belirtir:
+  https://linuxmint.com/rel_zena.php
+- LMDE 7 sayfasi Linux Mint Debian Edition'in Ubuntu yerine Debian paket tabani
+  kullandigini belirtir:
+  https://linuxmint.com/download_lmde.php
 
 Pratik minimum donanim:
 
@@ -83,6 +95,31 @@ headless calistirma daha az kaynak tuketir. Headless mod istenirse kodda
 | Gelistirme/test | Ubuntu Desktop 24.04/26.04 LTS veya WSL2 | GUI ve debug daha kolaydir; WSL2 saha/RTSP deployment icin ilk tercih olmamalidir |
 | Intel GPU/NPU hizlandirma dusunuluyorsa | Ubuntu 24.04 LTS veya 22.04 LTS | OpenVINO dokumanlari Intel GPU/NPU tarafinda bu LTS surumlerini destekler; mevcut kod OpenVINO icin uyarlanmalidir |
 | NVIDIA GPU/TensorRT dusunuluyorsa | Ubuntu 24.04 LTS veya 26.04 LTS | CUDA 13.3 dokumanlari bu Ubuntu LTS surumlerini destekler; mevcut kod CUDA/TensorRT icin uyarlanmalidir |
+
+Debian, Linux Mint ve benzeri dagitimlar:
+
+| Dagitim | Uygunluk | Not |
+| --- | --- | --- |
+| Debian 13 `trixie` stable | Saha/edge CPU-only kurulum icin cok uygun | Guncel stable Debian; server/minimal kurulumla dusuk kaynak kullanir. `scripts/setup_ubuntu.sh` Debian'da da genellikle calisir cunku apt paketlerini kurar. |
+| Debian 12 `bookworm` oldstable | Daha eski ama oturmus sistemler icin uygun | Mevcut donanim/surucu uyumu onceden test edildiyse kullanilabilir; yeni kurulumda Debian 13 tercih edilir. |
+| Linux Mint 22.3 `Zena` Cinnamon | Masaustu kullanici icin uygun | Ubuntu 24.04 tabanli LTS; GUI ile kamera izleme ve demo icin rahattir, fakat Cinnamon saha cihazinda daha fazla kaynak kullanir. |
+| Linux Mint 22.3 Xfce | Eski/dusuk kaynakli desktop icin daha uygun | Mint'in en hafif masaustu secenegidir; ekranda izleme gereken mini PC'lerde Cinnamon yerine daha mantiklidir. |
+| Linux Mint 22.3 MATE | Dengeli desktop secenegi | Xfce'den biraz daha dolu, Cinnamon'dan daha hafif bir orta yol sunar. |
+| LMDE 7 | Debian tabanli Mint isteyenler icin uygun | Ubuntu yerine Debian paket tabani kullanir; masaustu kolayligi + Debian tabani isteniyorsa degerlendirilebilir. |
+| MX Linux / antiX / benzeri Debian tabanlilar | Sadece deneyimli kullanici icin | Apt/OpenCV/FFmpeg paketleri bulunuyorsa calisabilir; deployment dokumanlari bu repo icin Debian/Ubuntu/Mint kadar dogrudan degildir. |
+| Arch / Manjaro / Fedora / openSUSE | Calisabilir ama ilk tercih degil | Paket adlari ve OpenCV build farkli olabilir; bu repodaki otomatik scriptler apt tabanli sistemlere gore hazirlanmistir. |
+
+Debian/Mint icin kurulum notu:
+
+```bash
+sudo bash scripts/setup_ubuntu.sh
+bash scripts/build_ubuntu.sh
+bash scripts/run_ubuntu.sh "rtsp://user:password@192.168.1.50:554/stream1"
+```
+
+Script adi `setup_ubuntu.sh` olsa da Debian, Linux Mint, LMDE ve Ubuntu
+turevlerinde ayni apt paketlerini kurar: `build-essential`, `cmake`,
+`pkg-config`, `libopencv-dev`, `ffmpeg`.
 
 Linux icin pratik cihaz onerileri:
 
