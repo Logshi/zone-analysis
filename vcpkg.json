@@ -1,0 +1,14 @@
+{
+  "name": "zone-analysis",
+  "version-string": "1.0.0",
+  "description": "Zone-based RTSP/video dwell-time person detection with YOLO ONNX and OpenCV.",
+  "dependencies": [
+    {
+      "name": "opencv4",
+      "default-features": true,
+      "features": [
+        "ffmpeg"
+      ]
+    }
+  ]
+}

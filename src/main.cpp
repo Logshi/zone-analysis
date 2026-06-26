@@ -1,0 +1,191 @@
+#include <opencv2/opencv.hpp>
+
+#include <algorithm>
+#include <cstdlib>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+#include "camera.hpp"
+#include "detector.hpp"
+#include "notifier.hpp"
+#include "tracker.hpp"
+
+namespace {
+
+constexpr int kInputWidth = 640;
+constexpr int kInputHeight = 640;
+
+std::vector<cv::Point> defaultRegion() {
+    return {
+        cv::Point(180, 200),
+        cv::Point(500, 200),
+        cv::Point(560, 560),
+        cv::Point(120, 560)
+    };
+}
+
+std::vector<cv::Point> parseRegion(const std::string& value) {
+    std::vector<cv::Point> points;
+    std::stringstream pointStream(value);
+    std::string token;
+
+    while (std::getline(pointStream, token, ';')) {
+        std::size_t comma = token.find(',');
+        if (comma == std::string::npos) {
+            throw std::runtime_error("Region noktasi gecersiz: " + token);
+        }
+
+        int x = std::stoi(token.substr(0, comma));
+        int y = std::stoi(token.substr(comma + 1));
+        points.emplace_back(x, y);
+    }
+
+    if (points.size() < 3) {
+        throw std::runtime_error("Region en az 3 nokta icermelidir.");
+    }
+
+    return points;
+}
+
+void printUsage(const char* executable) {
+    std::cerr << "Kullanim: " << executable
+              << " <rtsp_url_veya_video_path_veya_webcam_index> <onnx_model_path>"
+              << " [--dwell seconds] [--region \"x1,y1;x2,y2;x3,y3\"] [--alerts alerts_dir]"
+              << std::endl;
+    std::cerr << "Ornek (RTSP) : " << executable
+              << " \"rtsp://admin:password@192.168.1.50:554/stream1\" models/yolo26n.onnx"
+              << std::endl;
+    std::cerr << "Ornek (video): " << executable
+              << " test.mp4 models/yolo26n.onnx --dwell 15"
+              << std::endl;
+    std::cerr << "Ornek (webcam): " << executable
+              << " 0 models/yolo26n.onnx --region \"180,200;500,200;560,560;120,560\""
+              << std::endl;
+}
+
+struct Options {
+    std::string source;
+    std::string modelPath;
+    double dwellSeconds = 10.0;
+    std::vector<cv::Point> region = defaultRegion();
+    std::string alertsDir = "alerts";
+};
+
+Options parseArgs(int argc, char** argv) {
+    if (argc < 3) {
+        throw std::runtime_error("Eksik arguman.");
+    }
+
+    Options options;
+    options.source = argv[1];
+    options.modelPath = argv[2];
+
+    for (int i = 3; i < argc; ++i) {
+        std::string arg = argv[i];
+
+        auto requireValue = [&](const std::string& name) -> std::string {
+            if (i + 1 >= argc) {
+                throw std::runtime_error(name + " icin deger gerekli.");
+            }
+            return argv[++i];
+        };
+
+        if (arg == "--dwell") {
+            options.dwellSeconds = std::stod(requireValue(arg));
+            if (options.dwellSeconds <= 0.0) {
+                throw std::runtime_error("--dwell pozitif olmalidir.");
+            }
+        } else if (arg == "--region") {
+            options.region = parseRegion(requireValue(arg));
+        } else if (arg == "--alerts") {
+            options.alertsDir = requireValue(arg);
+        } else if (arg == "--help" || arg == "-h") {
+            printUsage(argv[0]);
+            std::exit(0);
+        } else {
+            throw std::runtime_error("Bilinmeyen arguman: " + arg);
+        }
+    }
+
+    return options;
+}
+
+void drawRegion(cv::Mat& frame, const std::vector<cv::Point>& region) {
+    std::vector<std::vector<cv::Point>> contours{region};
+    cv::polylines(frame, contours, true, cv::Scalar(255, 0, 0), 2);
+}
+
+void drawTracks(cv::Mat& frame, const std::unordered_map<int, Track>& tracks) {
+    for (const auto& pair : tracks) {
+        const Track& track = pair.second;
+        cv::Scalar color = track.inside ? cv::Scalar(0, 0, 255) : cv::Scalar(0, 255, 0);
+
+        cv::rectangle(frame, track.box, color, 2);
+        cv::putText(frame, "ID " + std::to_string(track.id),
+                    cv::Point(track.box.x, std::max(0, track.box.y - 8)),
+                    cv::FONT_HERSHEY_SIMPLEX, 0.5, color, 2);
+    }
+}
+
+} // namespace
+
+int main(int argc, char** argv) {
+    Options options;
+    try {
+        options = parseArgs(argc, argv);
+    } catch (const std::exception& ex) {
+        std::cerr << "[main] " << ex.what() << std::endl;
+        printUsage(argv[0]);
+        return 1;
+    }
+
+    Camera camera(options.source);
+    if (!camera.open()) {
+        std::cerr << "[main] Kamera/video acilamadi, cikiliyor." << std::endl;
+        return 1;
+    }
+
+    PersonDetector detector(options.modelPath);
+    DwellTracker tracker;
+    tracker.setDwellLimitSeconds(options.dwellSeconds);
+    Notifier notifier(options.alertsDir);
+
+    std::cout << "[main] Sistem baslatildi. Cikis icin 'q' veya ESC." << std::endl;
+    std::cout << "[main] Dwell limit: " << options.dwellSeconds << "s"
+              << " | Alerts: " << options.alertsDir << std::endl;
+
+    const std::string windowName = "RTSP Dwell Alert";
+    cv::namedWindow(windowName, cv::WINDOW_AUTOSIZE);
+
+    cv::Mat frame;
+    while (true) {
+        if (!camera.readResized(frame, kInputWidth, kInputHeight)) {
+            continue;
+        }
+
+        std::vector<Detection> detections = detector.detect(frame);
+        AlertEvent alert = tracker.update(detections, options.region);
+
+        if (alert.hasAlert) {
+            notifier.sendAlert(alert.trackId, alert.dwellSeconds, frame, alert.box);
+        }
+
+        drawRegion(frame, options.region);
+        drawTracks(frame, tracker.getTracks());
+
+        cv::imshow(windowName, frame);
+
+        int key = cv::waitKey(1);
+        if (key == 'q' || key == 27) {
+            std::cout << "[main] Cikis yapiliyor." << std::endl;
+            break;
+        }
+    }
+
+    camera.release();
+    cv::destroyAllWindows();
+    return 0;
+}

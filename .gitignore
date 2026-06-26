@@ -1,0 +1,17 @@
+build/
+.deps/
+.venv/
+__pycache__/
+*.pyc
+
+alerts/*.jpg
+alerts/*.jpeg
+alerts/*.png
+alerts/*.csv
+!alerts/.gitkeep
+
+runs/
+*.user
+*.suo
+*.vcxproj.user
+*.log
